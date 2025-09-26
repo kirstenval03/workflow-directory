@@ -80,7 +80,7 @@ export default function AIReportResults() {
       <div className="painpoints-section">
         {result.painpoints?.map((pp, idx) => (
           <div key={idx} className="painpoint-card">
-            <h3 className="painpoint-title">⚠️ Pain Point #{idx + 1}</h3>
+            <h3 className="painpoint-title">⚠️ Opportunity #{idx + 1}</h3>
             <p className="painpoint-text">{pp.pain_point}</p>
 
             {pp.original_quote && (
@@ -125,7 +125,7 @@ export default function AIReportResults() {
           <h3 className="section-title">📊 AI Opportunity Scores</h3>
           <div className="scores-grid">
             {Object.entries(result.ai_opportunity_score).map(([key, val]) => (
-              <div key={key} className="score-card">
+              <div key={key} className={`score-card score-${key}`}>
                 <p className="score-label">{key}</p>
                 <p className="score-value">{val}/10</p>
               </div>

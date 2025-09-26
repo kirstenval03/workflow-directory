@@ -364,33 +364,38 @@ button:disabled {
 }
 
 /* ====== Report Wrapper ====== */
+/* ====== Report Wrapper ====== */
+/* ====== Report Wrapper ====== */
 .report-wrapper {
-  max-width: 1000px;
-  margin: 2rem auto;
+  max-width: 1100px;
+  margin: 3rem auto;
   padding: 2rem;
-  font-family: 'Inter', sans-serif;
-  color: #1a1a1a;
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #eaeaea;
 }
 
 /* ====== Header ====== */
 .report-header {
-  background: linear-gradient(135deg, #0072ff, #00c6ff);
+  background: url('/src/styles/AI-GRADIENT-02.png') center/cover no-repeat;
   color: #fff;
-  padding: 2rem;
-  border-radius: 1.2rem;
-  box-shadow: 0 6px 20px rgba(0, 114, 255, 0.25);
-  margin-bottom: 2rem;
+  padding: 3.5rem 2rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+  margin-bottom: 3rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .report-title {
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 700;
-  margin: 0 0 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .report-client {
-  font-size: 1.1rem;
-  opacity: 0.9;
+  font-size: 1.3rem;
+  opacity: 0.95;
 }
 
 .client-name {
@@ -400,164 +405,143 @@ button:disabled {
   font-style: italic;
 }
 
-/* ====== Sections ====== */
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
+/* ====== Sections (Glassmorphism Cards) ====== */
 .summary-section,
 .painpoint-card,
 .scores-section {
-  background: #fff;
-  border-radius: 1rem;
-  padding: 1.5rem 2rem;
-  margin-bottom: 2rem;
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  background: rgba(255,255,255,0.08);
+  border-radius: 1.2rem;
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+  backdrop-filter: blur(12px);
+  color: #f0f0f0;
 }
 
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ====== Summary ====== */
 .summary-text {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #444;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #ddd;
 }
 
 /* ====== Pain Points ====== */
 .painpoint-card {
-  border-left: 6px solid #ff6b01;
+  background: rgba(255,255,255,0.05);
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+
+  /* Left gradient bar only */
+  border-left: 6px solid transparent;
+  border-image: linear-gradient(180deg, #ff6b01, #ff9966) 1;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  backdrop-filter: blur(12px);
 }
 
 .painpoint-title {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 600;
-  color: #ff6b01;
-  margin-bottom: 0.5rem;
-}
-
-.painpoint-text {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+  color: #ff9966;
+  margin-bottom: 0.75rem;
 }
 
 .painpoint-quote {
-  background: #f9fafc;
-  border-left: 4px solid #0072ff;
-  padding: 0.75rem 1rem;
-  margin: 1rem 0;
+  background: rgba(255,255,255,0.05);
+  border-left: 4px solid #00c6ff;
+  padding: 1rem 1.25rem;
+  margin: 1.25rem 0;
   font-style: italic;
-  color: #555;
-  border-radius: 0.5rem;
+  color: #ccc;
+  border-radius: 0.6rem;
 }
 
 /* ====== Recommendations ====== */
 .recommendation-card {
-  background: #fdfdfd;
-  border: 1px solid #eee;
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
   margin-top: 1rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .recommendation-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
 }
 
 .workflow-name {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  color: #0072ff;
-  margin-bottom: 0.25rem;
-}
-
-.workflow-description {
-  font-size: 0.95rem;
-  color: #333;
-  margin-bottom: 0.5rem;
-}
-
-.workflow-whyfit {
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-
-.workflow-benefits {
-  margin: 0.5rem 0;
-  padding-left: 1.25rem;
-  list-style-type: disc;
-  color: #444;
-}
-
-.workflow-impact {
-  font-size: 0.85rem;
-  color: #555;
-  margin-top: 0.25rem;
+  color: #00c6ff;
+  margin-bottom: 0.35rem;
 }
 
 /* ====== Scores ====== */
-.scores-section {
-  border-left: 6px solid #00c853;
-}
-
 .scores-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.75rem;
+  margin-top: 1.25rem;
 }
 
 .score-card {
-  background: #f9fafc;
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border-radius: 1rem;
+  padding: 2.25rem 1.5rem;
   text-align: center;
-  border: 1px solid #eee;
-  transition: background 0.2s ease;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .score-card:hover {
-  background: #f0faff;
+  transform: translateY(-6px);
+  box-shadow: 0 16px 35px rgba(0,0,0,0.4);
 }
 
 .score-label {
   font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.25rem;
-  text-transform: capitalize;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.5rem;
+  opacity: 0.95;
 }
 
 .score-value {
-  font-size: 1.25rem;
+  font-size: 2.4rem;
   font-weight: 700;
-  color: #0072ff;
 }
 
-/* ====== Loading / Error States ====== */
-.loading-container,
-.failed-container {
-  text-align: center;
-  margin-top: 4rem;
+/* Department-specific gradients */
+.score-marketing {
+  background: linear-gradient(135deg, #ff6b01, #ff9966);
 }
 
-.loading-title,
-.failed-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+.score-sales {
+  background: linear-gradient(135deg, #6a11cb, #2575fc);
 }
 
-.failed-title {
-  color: #e53935;
+.score-operations {
+  background: linear-gradient(135deg, #0072ff, #00c6ff);
 }
 
-.failed-message {
-  margin-top: 0.5rem;
-  font-size: 1rem;
+.score-customer_support {
+  background: linear-gradient(135deg, #43cea2, #185a9d);
 }
 
-.error-text {
-  color: #e53935;
-  font-weight: 500;
-}
