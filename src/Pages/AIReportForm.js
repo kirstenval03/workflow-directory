@@ -53,12 +53,17 @@ export default function AIReportForm() {
       const transcriptRes = await fetch(`/api/recall-transcript?id=${botId}`);
       const transcriptData = await transcriptRes.json();
 
-      // Recall transcripts are often an array of segments
+      // ✅ Safe parsing of transcript
       let text = "";
       if (Array.isArray(transcriptData)) {
-        text = transcriptData.map(t => t.text).join(" ");
+        text = transcriptData
+          .map(t => (typeof t.text === "string" ? t.text : ""))
+          .filter(Boolean)
+          .join(" ");
+      } else if (typeof transcriptData?.text === "string") {
+        text = transcriptData.text;
       } else {
-        text = transcriptData?.text || "Transcript not available yet.";
+        text = "Transcript not available yet.";
       }
 
       setLiveTranscript(text);

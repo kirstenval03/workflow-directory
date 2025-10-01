@@ -1,38 +1,38 @@
 export default async function handler(req, res) {
-  if (req.method === "POST") {
-    const { meetingUrl } = req.body;
-
-    try {
-      const recallRes = await fetch("https://us-west-2.recall.ai/api/v1/bot", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${process.env.RECALL_API_KEY}`, // NOTE: Token, not Bearer
-        },
-        body: JSON.stringify({
-          meeting_url: meetingUrl,
-          recording_config: {
-            transcript: { provider: "assemblyai" } // You can pick "assemblyai", "deepgram", etc.
-          },
-          recallai_streaming: {
-            mode: "prioritize_low_latency",
-            language_code: "en"
-          }
-        }),
-      });
-
-      const data = await recallRes.json();
-
-      if (!recallRes.ok) {
-        return res.status(recallRes.status).json({ error: data });
-      }
-
-      res.status(200).json(data);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  } else {
+  if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+
+  const { meetingUrl } = req.body;
+  if (!meetingUrl) return res.status(400).json({ error: "meetingUrl is required" });
+
+  try {
+    const recallRes = await fetch("https://us-west-2.recall.ai/api/v1/bot", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // NOTE: must be "Token"
+        Authorization: `Token ${process.env.RECALL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        meeting_url: meetingUrl,
+        bot_name: "AI-Architechs Bot",
+        recording_config: {
+          transcript: {
+            provider: { meeting_captions: {} } // 👈 transcript provider
+          }
+        }
+      }),
+    });
+
+    const text = await recallRes.text();
+    if (!recallRes.ok) {
+      return res.status(recallRes.status).send(text);
+    }
+
+    return res.status(200).send(text); // JSON string with { id, meeting_url, status }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 }
