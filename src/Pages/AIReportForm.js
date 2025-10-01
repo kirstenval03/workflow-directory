@@ -13,6 +13,52 @@ export default function AIReportForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // recall.ai state
+  const [recordingId, setRecordingId] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+
+  const handleStart = async () => {
+    try {
+      const meetingUrl = prompt("Enter the meeting URL (Zoom/Meet/Teams):");
+      if (!meetingUrl) return;
+
+      const res = await fetch("/api/recall", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meetingUrl }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to start recording");
+
+      setRecordingId(data.id);
+      setIsRecording(true);
+      setLiveTranscript("Recording started... transcript will appear here after stopping.");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to start recording.");
+    }
+  };
+
+  const handleStop = async () => {
+    try {
+      await fetch(`/api/recall-stop?id=${recordingId}`, { method: "DELETE" });
+
+      const transcriptRes = await fetch(`/api/recall-transcript?id=${recordingId}`);
+      const transcriptData = await transcriptRes.json();
+
+      const text = transcriptData?.text || "Transcript not available yet.";
+      setLiveTranscript(text);
+      setTranscript(text); // auto-fill main transcript box
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch transcript.");
+    } finally {
+      setIsRecording(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -42,7 +88,7 @@ export default function AIReportForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: data.id, // pass the row id so n8n updates the right row
+          id: data.id,
           client_name: clientName,
           company_name: companyName,
           client_email: clientEmail,
@@ -50,7 +96,7 @@ export default function AIReportForm() {
         }),
       });
 
-      // 3. Redirect user to results page
+      // 3. Redirect to results page
       navigate(`/AI-report-results/${data.id}`);
 
     } catch (err) {
@@ -108,7 +154,29 @@ export default function AIReportForm() {
             />
           </label>
 
-          <button type="submit" disabled={loading}>
+          {/* ===== Recall.ai Recorder Section ===== */}
+          <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "8px" }}>
+            <h3>Or Generate Transcript with Recall.ai</h3>
+            {!isRecording ? (
+              <button type="button" onClick={handleStart}>▶️ Start Recording</button>
+            ) : (
+              <button type="button" onClick={handleStop}>⏹ Stop Recording</button>
+            )}
+
+            {liveTranscript && (
+              <div style={{ marginTop: "1rem" }}>
+                <h4>Live Transcript</h4>
+                <textarea
+                  value={liveTranscript}
+                  readOnly
+                  rows="6"
+                  style={{ width: "100%", fontSize: "0.9rem" }}
+                />
+              </div>
+            )}
+          </div>
+
+          <button type="submit" disabled={loading} style={{ marginTop: "1rem" }}>
             {loading ? '⚡ Generating...' : 'Generate Report'}
           </button>
 
