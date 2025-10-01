@@ -7,12 +7,12 @@ export default async function handler(req, res) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Token ${process.env.RECALL_API_KEY}`, // 👈 must be "Token"
+          Authorization: `Token ${process.env.RECALL_API_KEY}`, // NOTE: Token, not Bearer
         },
         body: JSON.stringify({
           meeting_url: meetingUrl,
           recording_config: {
-            transcript: { provider: "assemblyai" } // or "deepgram", "revai", etc
+            transcript: { provider: "assemblyai" } // You can pick "assemblyai", "deepgram", etc.
           },
           recallai_streaming: {
             mode: "prioritize_low_latency",
