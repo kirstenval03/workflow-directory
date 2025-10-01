@@ -1,11 +1,11 @@
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    const { id } = req.query;
+    const { id } = req.query; // bot instance id
 
     try {
-      const recallRes = await fetch(`https://api.recall.ai/v1/recordings/${id}/transcript`, {
+      const recallRes = await fetch(`https://us-west-2.recall.ai/api/v1/bot/${id}/transcript`, {
         headers: {
-          Authorization: `Bearer ${process.env.RECALL_API_KEY}`,
+          Authorization: `Token ${process.env.RECALL_API_KEY}`,
         },
       });
 

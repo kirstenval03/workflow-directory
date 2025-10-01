@@ -1,22 +1,21 @@
 export default async function handler(req, res) {
   if (req.method === "DELETE") {
-    const { id } = req.query;
+    const { id } = req.query; // bot instance id returned by /bot
 
     try {
-      const recallRes = await fetch(`https://api.recall.ai/v1/recordings/${id}`, {
+      const recallRes = await fetch(`https://us-west-2.recall.ai/api/v1/bot/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${process.env.RECALL_API_KEY}`,
+          Authorization: `Token ${process.env.RECALL_API_KEY}`,
         },
       });
 
-      const data = await recallRes.json();
-
-      if (!recallRes.ok) {
-        return res.status(recallRes.status).json({ error: data });
+      if (recallRes.status === 204) {
+        return res.status(200).json({ success: true });
       }
 
-      res.status(200).json(data);
+      const data = await recallRes.json();
+      res.status(recallRes.status).json(data);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

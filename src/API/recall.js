@@ -3,15 +3,21 @@ export default async function handler(req, res) {
     const { meetingUrl } = req.body;
 
     try {
-      const recallRes = await fetch("https://api.recall.ai/v1/recordings", {
+      const recallRes = await fetch("https://us-west-2.recall.ai/api/v1/bot", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.RECALL_API_KEY}`, // stored in Vercel
+          Authorization: `Token ${process.env.RECALL_API_KEY}`, // 👈 must be "Token"
         },
         body: JSON.stringify({
           meeting_url: meetingUrl,
-          transcription: true,
+          recording_config: {
+            transcript: { provider: "assemblyai" } // or "deepgram", "revai", etc
+          },
+          recallai_streaming: {
+            mode: "prioritize_low_latency",
+            language_code: "en"
+          }
         }),
       });
 

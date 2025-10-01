@@ -14,7 +14,7 @@ export default function AIReportForm() {
   const [error, setError] = useState('');
 
   // recall.ai state
-  const [recordingId, setRecordingId] = useState(null);
+  const [botId, setBotId] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
 
@@ -32,9 +32,10 @@ export default function AIReportForm() {
 
       if (!res.ok) throw new Error(data.error || "Failed to start recording");
 
-      setRecordingId(data.id);
+      // store bot instance id
+      setBotId(data.id);
       setIsRecording(true);
-      setLiveTranscript("Recording started... transcript will appear here after stopping.");
+      setLiveTranscript("Bot is joining the meeting and recording...");
     } catch (err) {
       console.error(err);
       setError("Failed to start recording.");
@@ -43,12 +44,23 @@ export default function AIReportForm() {
 
   const handleStop = async () => {
     try {
-      await fetch(`/api/recall-stop?id=${recordingId}`, { method: "DELETE" });
+      if (!botId) throw new Error("No bot id available");
 
-      const transcriptRes = await fetch(`/api/recall-transcript?id=${recordingId}`);
+      // Stop the bot
+      await fetch(`/api/recall-stop?id=${botId}`, { method: "DELETE" });
+
+      // Fetch transcript
+      const transcriptRes = await fetch(`/api/recall-transcript?id=${botId}`);
       const transcriptData = await transcriptRes.json();
 
-      const text = transcriptData?.text || "Transcript not available yet.";
+      // Recall transcripts are often an array of segments
+      let text = "";
+      if (Array.isArray(transcriptData)) {
+        text = transcriptData.map(t => t.text).join(" ");
+      } else {
+        text = transcriptData?.text || "Transcript not available yet.";
+      }
+
       setLiveTranscript(text);
       setTranscript(text); // auto-fill main transcript box
     } catch (err) {
@@ -56,6 +68,7 @@ export default function AIReportForm() {
       setError("Failed to fetch transcript.");
     } finally {
       setIsRecording(false);
+      setBotId(null);
     }
   };
 
