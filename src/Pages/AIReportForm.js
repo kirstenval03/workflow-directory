@@ -43,39 +43,59 @@ export default function AIReportForm() {
   };
 
   const handleStop = async () => {
-    try {
-      if (!botId) throw new Error("No bot id available");
+  try {
+    if (!botId) throw new Error("No bot id available");
 
-      // Stop the bot
-      await fetch(`/api/recall-stop?id=${botId}`, { method: "DELETE" });
-
-      // Fetch transcript
-      const transcriptRes = await fetch(`/api/recall-transcript?id=${botId}`);
-      const transcriptData = await transcriptRes.json();
-
-      // ✅ Safe parsing of transcript
-      let text = "";
-      if (Array.isArray(transcriptData)) {
-        text = transcriptData
-          .map(t => (typeof t.text === "string" ? t.text : ""))
-          .filter(Boolean)
-          .join(" ");
-      } else if (typeof transcriptData?.text === "string") {
-        text = transcriptData.text;
-      } else {
-        text = "Transcript not available yet.";
-      }
-
-      setLiveTranscript(text);
-      setTranscript(text); // auto-fill main transcript box
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch transcript.");
-    } finally {
-      setIsRecording(false);
-      setBotId(null);
+    // Ask our API to remove bot from the call
+    const stopRes = await fetch(`/api/recall-stop`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: botId }),
+    });
+    if (!stopRes.ok) {
+      const t = await stopRes.text();
+      throw new Error(t || "Failed to stop bot");
     }
-  };
+
+    // Poll transcript until it's ready (or give up)
+    const maxTries = 20;        // ~36s total if interval=3s
+    const intervalMs = 4000;
+
+    let finalText = "";
+    for (let i = 0; i < maxTries; i++) {
+      const resp = await fetch(`/api/recall-transcript?id=${botId}`);
+      const bodyText = await resp.text();
+      if (resp.ok) {
+        let data;
+        try { data = JSON.parse(bodyText); } catch { data = bodyText; }
+
+        if (Array.isArray(data)) {
+          const joined = data
+            .map(s => (typeof s.text === "string" ? s.text : ""))
+            .filter(Boolean)
+            .join(" ");
+          if (joined.length > 0) { finalText = joined; break; }
+        } else if (data && typeof data.text === "string" && data.text.length) {
+          finalText = data.text;
+          break;
+        }
+      }
+      await new Promise(r => setTimeout(r, intervalMs));
+    }
+
+    if (!finalText) finalText = "Transcript not available yet. Try again in a moment.";
+
+    setLiveTranscript(finalText);
+    setTranscript(finalText);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to stop bot / fetch transcript.");
+  } finally {
+    setIsRecording(false);
+    setBotId(null);
+  }
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
