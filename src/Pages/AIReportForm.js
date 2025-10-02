@@ -17,11 +17,14 @@ export default function AIReportForm() {
   const [botId, setBotId] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
+  const [meetingUrl, setMeetingUrl] = useState('');
 
   const handleStart = async () => {
     try {
-      const meetingUrl = prompt("Enter the meeting URL (Zoom/Meet/Teams):");
-      if (!meetingUrl) return;
+      if (!meetingUrl) {
+        setError("Please enter a meeting URL first.");
+        return;
+      }
 
       const res = await fetch("/api/recall", {
         method: "POST",
@@ -36,11 +39,13 @@ export default function AIReportForm() {
       setBotId(data.id);
       setIsRecording(true);
       setLiveTranscript("Bot is joining the meeting and recording...");
+      setError('');
     } catch (err) {
       console.error(err);
       setError("Failed to start recording.");
     }
   };
+
   const handleStop = async () => {
     const log = (...args) => console.log("[Recall]", ...args);
 
@@ -103,7 +108,7 @@ export default function AIReportForm() {
 
       log("Final transcript length:", text.length);
       setLiveTranscript(text);
-      setTranscript(text);
+      setTranscript(text); // auto-fill main transcript box
 
     } catch (err) {
       console.error("[Recall] ERROR:", err);
@@ -114,6 +119,11 @@ export default function AIReportForm() {
     }
   };
 
+  const handleCopyTranscript = () => {
+    navigator.clipboard.writeText(liveTranscript)
+      .then(() => alert("Transcript copied to clipboard!"))
+      .catch(() => alert("Failed to copy transcript."));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -213,6 +223,18 @@ export default function AIReportForm() {
           {/* ===== Recall.ai Recorder Section ===== */}
           <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "8px" }}>
             <h3>Or Generate Transcript with Recall.ai</h3>
+
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>
+              Meeting URL:
+              <input
+                type="url"
+                value={meetingUrl}
+                onChange={(e) => setMeetingUrl(e.target.value)}
+                placeholder="https://zoom.us/j/123..."
+                style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
+              />
+            </label>
+
             {!isRecording ? (
               <button type="button" onClick={handleStart}>▶️ Start Recording</button>
             ) : (
@@ -228,6 +250,13 @@ export default function AIReportForm() {
                   rows="6"
                   style={{ width: "100%", fontSize: "0.9rem" }}
                 />
+                <button
+                  type="button"
+                  onClick={handleCopyTranscript}
+                  style={{ marginTop: "0.5rem" }}
+                >
+                  📋 Copy to Clipboard
+                </button>
               </div>
             )}
           </div>
