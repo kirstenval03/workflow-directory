@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: "bot id is required" });
 
   try {
-    const url = `https://us-west-2.recall.ai/api/v1/bot/${id}/transcript/`;
+    const url = `https://us-west-2.recall.ai/api/v1/bot/${id}/`;
     const recallRes = await fetch(url, {
       headers: { Authorization: `Token ${process.env.RECALL_API_KEY}` },
     });

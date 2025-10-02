@@ -46,46 +46,33 @@ export default function AIReportForm() {
   try {
     if (!botId) throw new Error("No bot id available");
 
-    // Ask our API to remove bot from the call
-    const stopRes = await fetch(`/api/recall-stop`, {
+    // Ask our API to stop the bot
+    await fetch(`/api/recall-stop`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: botId }),
     });
-    if (!stopRes.ok) {
-      const t = await stopRes.text();
-      throw new Error(t || "Failed to stop bot");
-    }
 
-    // Poll transcript until it's ready (or give up)
-    const maxTries = 20;        // ~36s total if interval=3s
-    const intervalMs = 4000;
-
+    // Poll for status until "done"
     let finalText = "";
-    for (let i = 0; i < maxTries; i++) {
-      const resp = await fetch(`/api/recall-transcript?id=${botId}`);
-      const bodyText = await resp.text();
-      if (resp.ok) {
-        let data;
-        try { data = JSON.parse(bodyText); } catch { data = bodyText; }
-
-        if (Array.isArray(data)) {
-          const joined = data
-            .map(s => (typeof s.text === "string" ? s.text : ""))
-            .filter(Boolean)
-            .join(" ");
-          if (joined.length > 0) { finalText = joined; break; }
-        } else if (data && typeof data.text === "string" && data.text.length) {
-          finalText = data.text;
-          break;
+    for (let i = 0; i < 10; i++) { // ~30s
+      const statusRes = await fetch(`/api/recall-status?id=${botId}`);
+      const statusData = await statusRes.json();
+      if (statusData.status === "done") {
+        // Fetch transcript
+        const tRes = await fetch(`/api/recall-transcript?id=${botId}`);
+        const tData = await tRes.json();
+        if (Array.isArray(tData)) {
+          finalText = tData.map(s => s.text).join(" ");
+        } else if (tData?.text) {
+          finalText = tData.text;
         }
+        break;
       }
-      await new Promise(r => setTimeout(r, intervalMs));
+      await new Promise(r => setTimeout(r, 3000));
     }
 
-    if (!finalText) finalText = "Transcript not available yet. Try again in a moment.";
-
-    setLiveTranscript(finalText);
+    setLiveTranscript(finalText || "Transcript not available yet.");
     setTranscript(finalText);
   } catch (err) {
     console.error(err);
