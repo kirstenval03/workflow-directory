@@ -46,34 +46,68 @@ export default function AIReportForm() {
   try {
     if (!botId) throw new Error("No bot id available");
 
-    // Ask our API to stop the bot
-    await fetch(`/api/recall-stop`, {
+    // 1) Tell bot to leave the call
+    const stopRes = await fetch(`/api/recall-stop`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: botId }),
     });
-
-    // Poll for status until "done"
-    let finalText = "";
-    for (let i = 0; i < 10; i++) { // ~30s
-      const statusRes = await fetch(`/api/recall-status?id=${botId}`);
-      const statusData = await statusRes.json();
-      if (statusData.status === "done") {
-        // Fetch transcript
-        const tRes = await fetch(`/api/recall-transcript?id=${botId}`);
-        const tData = await tRes.json();
-        if (Array.isArray(tData)) {
-          finalText = tData.map(s => s.text).join(" ");
-        } else if (tData?.text) {
-          finalText = tData.text;
-        }
-        break;
-      }
-      await new Promise(r => setTimeout(r, 3000));
+    if (!stopRes.ok) {
+      const t = await stopRes.text();
+      throw new Error(t || "Failed to stop bot");
     }
 
-    setLiveTranscript(finalText || "Transcript not available yet.");
-    setTranscript(finalText);
+    // 2) Poll the bot object until status === "done"
+    const maxTries = 20; // ~60s total
+    const intervalMs = 3000;
+    let transcriptId = null;
+
+    for (let i = 0; i < maxTries; i++) {
+      const sRes = await fetch(`/api/recall-status?id=${botId}`);
+      const bot = await sRes.json();
+      console.debug("Bot status:", bot.status);
+
+      if (bot.status === "done") {
+        // Try to locate transcript id in media_shortcuts
+        const recs = Array.isArray(bot.recordings) ? bot.recordings : [];
+        const first = recs[0] || {};
+        const ms = first.media_shortcuts || {};
+        // primary path
+        transcriptId = ms?.transcript?.data?.id
+          // fallback in case provider nests differently
+          || ms?.meeting_captions?.data?.id
+          || ms?.recallai_streaming?.data?.id;
+
+        console.debug("Transcript ID:", transcriptId);
+        break;
+      }
+
+      await new Promise(r => setTimeout(r, intervalMs));
+    }
+
+    if (!transcriptId) {
+      setLiveTranscript("Transcript not available yet.");
+      setTranscript("");
+      return;
+    }
+
+    // 3) Fetch transcript by transcript id (CORRECT endpoint)
+    const tRes = await fetch(`/api/recall-transcript-by-id?tid=${transcriptId}`);
+    const tData = await tRes.json();
+
+    // 4) Build text
+    let text = "";
+    if (Array.isArray(tData)) {
+      text = tData.map(s => (typeof s.text === "string" ? s.text : "")).filter(Boolean).join(" ");
+    } else if (typeof tData?.text === "string") {
+      text = tData.text;
+    } else {
+      text = "Transcript not available yet.";
+    }
+
+    setLiveTranscript(text);
+    setTranscript(text);
+
   } catch (err) {
     console.error(err);
     setError("Failed to stop bot / fetch transcript.");
