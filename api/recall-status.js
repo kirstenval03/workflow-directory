@@ -1,3 +1,4 @@
+// api/recall-status.js
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
@@ -15,10 +16,27 @@ export default async function handler(req, res) {
       headers: { Authorization: `Token ${process.env.RECALL_API_KEY}` },
     });
 
-    const text = await recallRes.text();
-    // Surface exact response so we can see what's happening
-    res.status(recallRes.status).send(text);
+    if (!recallRes.ok) {
+      const text = await recallRes.text();
+      return res.status(recallRes.status).send(text);
+    }
+
+    const data = await recallRes.json();
+
+    // Look for transcript download URL
+    const transcriptObj =
+      data.recordings?.[0]?.media_shortcuts?.transcript;
+
+    if (!transcriptObj) {
+      return res.status(200).json({ ready: false });
+    }
+
+    // Fetch the actual transcript JSON
+    const transcriptRes = await fetch(transcriptObj.data.download_url);
+    const transcript = await transcriptRes.json();
+
+    return res.status(200).json({ ready: true, transcript });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }

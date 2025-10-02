@@ -41,108 +41,78 @@ export default function AIReportForm() {
       setError("Failed to start recording.");
     }
   };
-
   const handleStop = async () => {
-  const log = (...args) => console.log("[Recall]", ...args);
+    const log = (...args) => console.log("[Recall]", ...args);
 
-  try {
-    if (!botId) throw new Error("No bot id available");
-    log("Stopping bot:", botId);
+    try {
+      if (!botId) throw new Error("No bot id available");
+      log("Stopping bot:", botId);
 
-    // 1) Leave call
-    const stopRes = await fetch(`/api/recall-stop`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: botId }),
-    });
-    const stopBody = await stopRes.text();
-    log("leave_call -> status:", stopRes.status, "body:", stopBody);
-    if (!stopRes.ok) throw new Error(`leave_call failed: ${stopBody}`);
+      // 1) Leave call
+      const stopRes = await fetch(`/api/recall-stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: botId }),
+      });
 
-    // 2) Poll bot status until 'done'
-    const maxTries = 20;   // ~60s
-    const wait = (ms) => new Promise(r => setTimeout(r, ms));
-    let transcriptId = null;
+      if (!stopRes.ok) {
+        const stopBody = await stopRes.text();
+        throw new Error(`leave_call failed: ${stopBody}`);
+      }
+      log("Bot left call successfully");
 
-    for (let i = 0; i < maxTries; i++) {
-      const statusRes = await fetch(`/api/recall-status?id=${botId}`);
-      const statusText = await statusRes.text();
-      log("bot status raw:", statusRes.status, statusText);
+      // 2) Poll /api/recall-status until transcript is ready
+      const maxTries = 20; // ~60s
+      const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-      let bot;
-      try { bot = JSON.parse(statusText); } catch { bot = {}; }
+      let transcriptData = null;
+      for (let i = 0; i < maxTries; i++) {
+        const statusRes = await fetch(`/api/recall-status?id=${botId}`);
+        const data = await statusRes.json();
+        log(`poll ${i + 1}/${maxTries} -> ready:`, data.ready);
 
-      // show full bot JSON once to inspect structure in console
-      if (i === 0) log("bot json example:", bot);
-
-      const status = bot?.status;
-      log(`poll ${i + 1}/${maxTries} -> status:`, status);
-
-      if (status === "done") {
-        // Try the expected media_shortcuts path(s)
-        const recs = Array.isArray(bot.recordings) ? bot.recordings : [];
-        const first = recs[0] || {};
-        const ms = first.media_shortcuts || {};
-
-        transcriptId =
-          ms?.transcript?.data?.id ||
-          ms?.meeting_captions?.data?.id ||
-          ms?.recallai_streaming?.data?.id ||
-          null;
-
-        log("transcriptId found:", transcriptId);
-        break;
+        if (data.ready) {
+          transcriptData = data.transcript;
+          break;
+        }
+        await wait(3000);
       }
 
-      await wait(3000);
+      if (!transcriptData) {
+        log("Transcript not ready after polling.");
+        setLiveTranscript("Transcript not available yet.");
+        setTranscript("");
+        return;
+      }
+
+      // 3) Build readable text
+      let text = "";
+      if (Array.isArray(transcriptData)) {
+        text = transcriptData
+          .map(block => {
+            const name = block.participant?.name || "Unknown";
+            const words = (block.words || [])
+              .map(w => w.text)
+              .join(" ");
+            return `${name}: ${words}`;
+          })
+          .join("\n\n");
+      } else {
+        text = JSON.stringify(transcriptData, null, 2);
+      }
+
+      log("Final transcript length:", text.length);
+      setLiveTranscript(text);
+      setTranscript(text);
+
+    } catch (err) {
+      console.error("[Recall] ERROR:", err);
+      setError("Failed to stop bot / fetch transcript.");
+    } finally {
+      setIsRecording(false);
+      setBotId(null);
     }
-
-    if (!transcriptId) {
-      log("No transcriptId available yet after polling.");
-      setLiveTranscript("Transcript not available yet.");
-      setTranscript("");
-      return;
-    }
-
-    // 3) Fetch transcript by id
-    log("Fetching transcript by id:", transcriptId);
-    const tRes = await fetch(`/api/recall-transcript-by-id?tid=${transcriptId}`);
-    const tText = await tRes.text();
-    log("transcript fetch -> status:", tRes.status, "body:", tText);
-
-    if (!tRes.ok) throw new Error(`transcript fetch failed: ${tText}`);
-
-    let tData;
-    try { tData = JSON.parse(tText); } catch { tData = tText; }
-
-    // 4) Build text and display
-    let text = "";
-    if (Array.isArray(tData)) {
-      text = tData
-        .map(s => (typeof s.text === "string" ? s.text : ""))
-        .filter(Boolean)
-        .join(" ");
-    } else if (typeof tData?.text === "string") {
-      text = tData.text;
-    } else if (typeof tData === "string") {
-      // sometimes API returns plain text
-      text = tData;
-    } else {
-      text = "Transcript not available.";
-    }
-
-    log("final transcript length:", text.length);
-    setLiveTranscript(text);
-    setTranscript(text);
-
-  } catch (err) {
-    console.error("[Recall] ERROR:", err);
-    setError("Failed to stop bot / fetch transcript.");
-  } finally {
-    setIsRecording(false);
-    setBotId(null);
-  }
-};
+  };
 
 
   const handleSubmit = async (e) => {
