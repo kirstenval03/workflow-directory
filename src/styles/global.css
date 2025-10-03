@@ -350,6 +350,8 @@ p  { margin: 0 0 12px; }
 
 
 
+
+
 /* Labels + Inputs */
 .form-content {
   display: flex;
@@ -617,3 +619,29 @@ button:disabled {
   background: linear-gradient(135deg, #43cea2, #185a9d);
 }
 
+
+
+.table-wide th,
+.table-wide td {
+  padding: 12px;
+  vertical-align: top;
+  white-space: normal;
+}
+
+/* Suggested widths */
+th.workflow_name, td.workflow_name { width: 200px; }
+th.pillar, td.pillar { width: 120px; }
+th.subpillar, td.subpillar { width: 120px; }
+th.executive_summary, td.executive_summary { width: 480px; }
+th.industry, td.industry { width: 220px; }
+th.primary_objective, td.primary_objective { width: 180px; }
+th.business_results, td.business_results { width: 320px; }
+th.business_use_cases, td.business_use_cases { width: 320px; }
+th.step_by_step, td.step_by_step { width: 320px; }
+th.core_ai, td.core_ai { width: 220px; }
+th.llm_components, td.llm_components { width: 220px; }
+th.timeline, td.timeline { width: 120px; }
+th.weekly_savings, td.weekly_savings { width: 150px; }
+th.agency_cost, td.agency_cost { width: 160px; }
+th.risk, td.risk { width: 260px; }
+th.n8n, td.n8n { width: 100px; }
