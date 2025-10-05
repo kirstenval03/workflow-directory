@@ -645,3 +645,328 @@ th.weekly_savings, td.weekly_savings { width: 150px; }
 th.agency_cost, td.agency_cost { width: 160px; }
 th.risk, td.risk { width: 260px; }
 th.n8n, td.n8n { width: 100px; }
+
+
+/* =========================
+   ⚙️ AI Report Page Layout
+========================= */
+
+.report-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  color: #f1f5f9;
+  font-family: 'Poppins', sans-serif;
+}
+
+.report-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.report-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #00c6ff, #ff6b01);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.5px;
+}
+
+.report-subtitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 0.5rem;
+}
+
+/* =========================
+   Sections
+========================= */
+
+.report-section {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  border-left: 4px solid #36d1ff;
+  padding-left: 0.75rem;
+  position: relative;
+}
+
+/* Glow accent on section titles */
+.section-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #00c6ff, transparent);
+  opacity: 0.3;
+}
+
+.section-paragraph {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #cbd5e1;
+}
+
+/* =========================
+   Chart
+========================= */
+
+.chart-container {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(15,23,42,0.85), rgba(30,41,59,0.85));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+}
+
+/* Recharts global overrides */
+.recharts-cartesian-axis-tick tspan {
+  fill: #cbd5e1;
+  font-size: 12px;
+}
+
+.recharts-tooltip-wrapper {
+  backdrop-filter: blur(8px);
+}
+
+.recharts-default-tooltip {
+  background: rgba(15,23,42,0.9) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 8px !important;
+  color: #e2e8f0 !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+/* Smooth bar animation */
+.recharts-bar-rectangle {
+  transition: all 0.4s ease;
+}
+.recharts-bar-rectangle:hover {
+  filter: brightness(1.2);
+  transform: scale(1.02);
+}
+
+/* Axis lines and grid */
+.recharts-cartesian-axis-line,
+.recharts-cartesian-grid-horizontal,
+.recharts-cartesian-grid-vertical {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+
+/* Optional drop shadow for chart container */
+.recharts-wrapper {
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
+}
+
+/* =========================
+   Opportunities
+========================= */
+
+.opportunity-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.opportunity-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.opportunity-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fbbf24;
+  margin-bottom: 0.5rem;
+}
+
+.opportunity-quote {
+  font-style: italic;
+  color: #a5b4fc;
+  margin: 0.75rem 0 1.5rem;
+  border-left: 3px solid #36d1ff;
+  padding-left: 0.75rem;
+  line-height: 1.6;
+}
+
+/* Workflow blocks inside each opportunity */
+.workflow-block {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border-left: 3px solid #00c6ff;
+}
+
+.workflow-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #36d1ff;
+  margin-bottom: 0.25rem;
+}
+
+.workflow-description {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.workflow-benefits {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 1rem;
+}
+
+.workflow-benefits li {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
+}
+
+.roi-section {
+  background: rgba(15, 23, 42, 0.7);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+}
+
+/* =========================
+   Roadmap
+========================= */
+
+.roadmap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.roadmap-week {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid #ff6b01;
+}
+
+.roadmap-week-title {
+  font-weight: 600;
+  color: #ff6b01;
+  margin-bottom: 0.5rem;
+}
+
+/* =========================
+   Cost & CTA
+========================= */
+
+.cost-section .cost-details {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  color: #e2e8f0;
+}
+
+.cost-section p {
+  margin: 0.5rem 0;
+}
+
+.cta-note {
+  margin-top: 1rem;
+  font-weight: 500;
+  color: #36d1ff;
+}
+
+/* =========================
+   Risk Reversal
+========================= */
+
+.risk-section .risk-summary {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #cbd5e1;
+  margin-bottom: 1.5rem;
+}
+
+.risk-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.risk-metrics p {
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: #f1f5f9;
+}
+
+/* =========================
+   Loading / Error / Failed
+========================= */
+
+.loading-container,
+.failed-container {
+  text-align: center;
+  padding: 5rem 2rem;
+}
+
+.loading-title {
+  font-size: 1.75rem;
+  color: #36d1ff;
+}
+
+.loading-subtitle {
+  color: #94a3b8;
+}
+
+.failed-title {
+  font-size: 1.75rem;
+  color: #ef4444;
+}
+
+.failed-message {
+  color: #94a3b8;
+}
+
+.error-text {
+  text-align: center;
+  color: #ef4444;
+  margin-top: 3rem;
+}
+
+/* =========================
+   Glass Utility
+========================= */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+}
+
+.recharts-yAxis .recharts-cartesian-axis-tick text {
+  white-space: nowrap; /* force single-line labels */
+}

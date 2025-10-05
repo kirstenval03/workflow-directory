@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function AIReportResults() {
   const { id } = useParams();
@@ -37,14 +38,13 @@ export default function AIReportResults() {
 
   if (error) return <p className="error-text">{error}</p>;
 
-  if (loading) {
+  if (loading)
     return (
       <div className="loading-container">
         <h2 className="loading-title">⚡ Generating report...</h2>
         <p className="loading-subtitle">Please wait a few moments.</p>
       </div>
     );
-  }
 
   if (report.status === 'failed') {
     return (
@@ -58,81 +58,216 @@ export default function AIReportResults() {
   }
 
   const result = report.report_json || {};
+  const { report_summary, efficiency_gaps, painpoints, implementation_roadmap, cost_and_cta, risk_reversal } = result;
+
+  // Flatten efficiency gaps for bar chart
+  const chartData = efficiency_gaps
+    ? efficiency_gaps.flatMap((pillarObj) =>
+        Object.entries(pillarObj.subpillars).map(([sub, score]) => ({
+          name: `${pillarObj.pillar} — ${sub.replace('_score', '').replace(/_/g, ' ')}`,
+          score,
+          color:
+            score <= 30
+              ? '#ef4444' // red
+              : score <= 70
+              ? '#facc15' // yellow
+              : '#22c55e', // green
+        }))
+      )
+    : [];
 
   return (
-    <div className="report-wrapper">
-      {/* Header */}
-      <div className="report-header">
-        <h2 className="report-title">AI Report Results</h2>
-        <p className="report-client">
-          <span className="client-name">{report.client_name}</span> —{' '}
-          <span className="company-name">{report.company_name}</span>
-        </p>
-      </div>
+    <div className="report-container">
+      {/* TITLE */}
+      <header className="report-header">
+        <h1 className="report-title">AI Opportunity Report</h1>
+        {report.company_name && <h3 className="report-subtitle">{report.company_name}</h3>}
+      </header>
 
-      {/* Summary */}
-      <div className="summary-section">
-        <h3 className="section-title">📋 Summary</h3>
-        <p className="summary-text">{result.summary}</p>
-      </div>
+      {/* SUMMARY */}
+      <section className="report-section summary-section">
+        <h2 className="section-title">Executive Summary</h2>
+        <p className="section-paragraph">{report_summary}</p>
+      </section>
 
-      {/* Pain Points */}
-      <div className="painpoints-section">
-        {result.painpoints?.map((pp, idx) => (
-          <div key={idx} className="painpoint-card">
-            <h3 className="painpoint-title">⚠️ Opportunity #{idx + 1}</h3>
-            <p className="painpoint-text">{pp.pain_point}</p>
+      {/* BIGGEST LEVERS */}
+      <section className="report-section levers-section">
+        <h2 className="section-title">Biggest Levers — Where AI Can Create the Fastest Impact</h2>
+        {chartData.length > 0 ? (
+         <div className="chart-container">
+  <div className="chart-scroll-container">
+    <ResponsiveContainer
+      width="100%"
+      height={Math.min(chartData.length * 55, 700)}
+    >
+      <BarChart
+        data={chartData}
+        layout="vertical"
+        margin={{ top: 10, right: 40, left: 160, bottom: 10 }}
+        barGap={10}
+      >
+        <XAxis type="number" domain={[0, 100]} />
+        <YAxis
+          dataKey="name"
+          type="category"
+          interval={0}
+          width={160}
+          tickMargin={10}
+          tick={({ x, y, payload }) => (
+            <text
+              x={x}
+              y={y + 4}
+              fill="#cbd5e1"
+              fontSize={13}
+              textAnchor="end"
+              style={{
+                overflow: 'visible',
+                whiteSpace: 'pre', // keep all text on one line
+              }}
+            >
+              {payload.value}
+            </text>
+          )}
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#0f172a',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            color: '#f8fafc',
+            fontSize: 13,
+          }}
+        />
+        <Bar
+          dataKey="score"
+          radius={[8, 8, 8, 8]}
+          barSize={18}
+          label={{
+            position: 'right',
+            fill: '#E2E8F0',
+            fontSize: 12,
+          }}
+        >
+          {chartData.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={entry.color}
+              stroke="rgba(255,255,255,0.15)"
+              strokeWidth={1}
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
 
-            {pp.original_quote && (
-              <blockquote className="painpoint-quote">
-                “{pp.original_quote}”
-              </blockquote>
+        ) : (
+          <p>No efficiency data found.</p>
+        )}
+      </section>
+
+      {/* OPPORTUNITIES */}
+      <section className="report-section opportunities-section">
+        <h2 className="section-title">Opportunities</h2>
+        {painpoints?.map((p, i) => (
+          <div key={i} className="opportunity-card glass-card">
+            <h3 className="opportunity-title">⚠️ {p.opportunity_title}</h3>
+            {p.original_quote && (
+              <blockquote className="opportunity-quote">“{p.original_quote}”</blockquote>
             )}
 
-            <div className="recommendations-list">
-              {pp.recommendations?.map((rec, rIdx) => (
-                <div key={rIdx} className="recommendation-card">
-                  <h4 className="workflow-name">{rec.workflow_name}</h4>
-                  <p className="workflow-description">{rec.workflow_description}</p>
-                  <p className="workflow-whyfit">
-                    <strong>Why Fit:</strong> {rec.why_fit}
-                  </p>
+            {p.workflow_recommendations?.map((w, j) => (
+              <div key={j} className="workflow-block">
+                <h4 className="workflow-name">{w.workflow_name}</h4>
+                <p className="workflow-description">{w.workflow_description}</p>
 
-                  {rec.benefits && (
-                    <ul className="workflow-benefits">
-                      {rec.benefits.map((b, bIdx) => (
-                        <li key={bIdx}>{b}</li>
-                      ))}
-                    </ul>
-                  )}
+                <ul className="workflow-benefits">
+                  {w.benefits?.slice(0, 2).map((b, idx) => (
+                    <li key={`pos-${idx}`}>✅ {b}</li>
+                  ))}
+                  {w.benefits?.slice(2).map((b, idx) => (
+                    <li key={`neg-${idx}`}>❌ {b}</li>
+                  ))}
+                </ul>
 
-                  {rec.estimated_impact && (
-                    <p className="workflow-impact">
-                      <strong>Impact:</strong> {rec.estimated_impact.value}{' '}
-                      {rec.estimated_impact.unit} ({rec.estimated_impact.notes})
+                {w.roi_projection && (
+                  <div className="roi-section">
+                    <p>
+                      <strong>⏱ Weekly Savings:</strong> {w.roi_projection.weekly_savings}
                     </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* AI Opportunity Scores */}
-      {result.ai_opportunity_score && (
-        <div className="scores-section">
-          <h3 className="section-title">📊 AI Opportunity Scores</h3>
-          <div className="scores-grid">
-            {Object.entries(result.ai_opportunity_score).map(([key, val]) => (
-              <div key={key} className={`score-card score-${key}`}>
-                <p className="score-label">{key}</p>
-                <p className="score-value">{val}/10</p>
+                    <p>
+                      <strong>📆 Annual Projection:</strong> {w.roi_projection.annual_projection}
+                    </p>
+                    <p>
+                      <strong>⚙️ Implementation Timeline:</strong>{' '}
+                      {w.roi_projection.implementation_timeline}
+                    </p>
+                    <p>
+                      <strong>💸 Agency Comparison:</strong>{' '}
+                      {w.roi_projection.agency_comparison}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+        ))}
+      </section>
+
+      {/* IMPLEMENTATION ROADMAP */}
+      <section className="report-section roadmap-section">
+        <h2 className="section-title">Implementation Roadmap</h2>
+        <div className="roadmap-list">
+          {Object.entries(implementation_roadmap || {}).map(([week, tasks]) =>
+            week !== 'total_weeks' ? (
+              <div key={week} className="roadmap-week">
+                <h4 className="roadmap-week-title">
+                  {week.replace('_', ' ').toUpperCase()}
+                </h4>
+                <ul>
+                  {tasks.map((task, tIndex) => (
+                    <li key={tIndex}>• {task}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null
+          )}
         </div>
-      )}
+      </section>
+
+      {/* COST & CTA */}
+      <section className="report-section cost-section">
+        <h2 className="section-title">Cost Comparison & Next Steps</h2>
+        <div className="cost-details">
+          <p>
+            <strong>Agency Cost Range:</strong> {cost_and_cta?.agency_cost_range}
+          </p>
+          <p>
+            <strong>Monthly Maintenance:</strong> {cost_and_cta?.monthly_maintenance_range}
+          </p>
+          <p>
+            <strong>Our Program Cost:</strong> {cost_and_cta?.our_program_cost}
+          </p>
+          <p className="cta-note">
+            Includes ongoing in-house support at only <strong>$10–15/hr</strong>.
+          </p>
+        </div>
+      </section>
+
+      {/* RISK REVERSAL */}
+      <section className="report-section risk-section">
+        <h2 className="section-title">Risk Reversal — Cost of Inaction</h2>
+        <p className="risk-summary">{risk_reversal?.summary}</p>
+        <div className="risk-metrics">
+          <p>
+            ⏱ <strong>{risk_reversal?.hours_lost_per_month}</strong> wasted monthly
+          </p>
+          <p>
+            💸 <strong>{risk_reversal?.money_lost_per_month}</strong> in lost opportunities
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
