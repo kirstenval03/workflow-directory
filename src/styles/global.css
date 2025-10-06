@@ -440,184 +440,6 @@ button:disabled {
 /* ====== Report Wrapper ====== */
 /* ====== Report Wrapper ====== */
 /* ====== Report Wrapper ====== */
-.report-wrapper {
-  max-width: 1100px;
-  margin: 3rem auto;
-  padding: 2rem;
-  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: #eaeaea;
-}
-
-/* ====== Header ====== */
-.report-header {
-  background: url('/src/styles/AI-GRADIENT-02.png') center/cover no-repeat;
-  color: #fff;
-  padding: 3.5rem 2rem;
-  border-radius: 1.5rem;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
-  margin-bottom: 3rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.report-title {
-  font-size: 3rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.report-client {
-  font-size: 1.3rem;
-  opacity: 0.95;
-}
-
-.client-name {
-  font-weight: 600;
-}
-.company-name {
-  font-style: italic;
-}
-
-/* ====== Sections (Glassmorphism Cards) ====== */
-.summary-section,
-.painpoint-card,
-.scores-section {
-  background: rgba(255,255,255,0.08);
-  border-radius: 1.2rem;
-  padding: 2rem;
-  margin-bottom: 2.5rem;
-  border: 1px solid rgba(255,255,255,0.15);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.25);
-  backdrop-filter: blur(12px);
-  color: #f0f0f0;
-}
-
-.section-title {
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* ====== Summary ====== */
-.summary-text {
-  font-size: 1.05rem;
-  line-height: 1.7;
-  color: #ddd;
-}
-
-/* ====== Pain Points ====== */
-.painpoint-card {
-  background: rgba(255,255,255,0.05);
-  border-radius: 1rem;
-  padding: 1.5rem 2rem;
-  margin-bottom: 2rem;
-
-  /* Left gradient bar only */
-  border-left: 6px solid transparent;
-  border-image: linear-gradient(180deg, #ff6b01, #ff9966) 1;
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
-
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  backdrop-filter: blur(12px);
-}
-
-.painpoint-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #ff9966;
-  margin-bottom: 0.75rem;
-}
-
-.painpoint-quote {
-  background: rgba(255,255,255,0.05);
-  border-left: 4px solid #00c6ff;
-  padding: 1rem 1.25rem;
-  margin: 1.25rem 0;
-  font-style: italic;
-  color: #ccc;
-  border-radius: 0.6rem;
-}
-
-/* ====== Recommendations ====== */
-.recommendation-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 1rem;
-  padding: 1.25rem 1.5rem;
-  margin-top: 1rem;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.recommendation-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-}
-
-.workflow-name {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #00c6ff;
-  margin-bottom: 0.35rem;
-}
-
-/* ====== Scores ====== */
-.scores-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.75rem;
-  margin-top: 1.25rem;
-}
-
-.score-card {
-  border-radius: 1rem;
-  padding: 2.25rem 1.5rem;
-  text-align: center;
-  font-weight: 600;
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(0,0,0,0.3);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.score-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 35px rgba(0,0,0,0.4);
-}
-
-.score-label {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 0.5rem;
-  opacity: 0.95;
-}
-
-.score-value {
-  font-size: 2.4rem;
-  font-weight: 700;
-}
-
-/* Department-specific gradients */
-.score-marketing {
-  background: linear-gradient(135deg, #ff6b01, #ff9966);
-}
-
-.score-sales {
-  background: linear-gradient(135deg, #6a11cb, #2575fc);
-}
-
-.score-operations {
-  background: linear-gradient(135deg, #0072ff, #00c6ff);
-}
-
-.score-customer_support {
-  background: linear-gradient(135deg, #43cea2, #185a9d);
-}
 
 
 
@@ -656,27 +478,42 @@ th.n8n, td.n8n { width: 100px; }
   margin: 0 auto;
   padding: 4rem 2rem;
   color: #f1f5f9;
-  font-family: 'Poppins', sans-serif;
+ font-family: 'Montserrat', system-ui, sans-serif;
+  
 }
 
 .report-header {
+  background: url('/src/styles/AI-GRADIENT-02.png') center/cover no-repeat;
+  color: #fff;
+  padding: 2rem 1rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+  margin-bottom: 3rem;
   text-align: center;
-  margin-bottom: 2.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.report-logo {
+  width: 350px;             /* Adjust to your preferred width */
+  max-width: 50%;
+  height: auto;
+  margin-bottom: 1.25rem;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 
 .report-title {
   font-size: 2.25rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, #00c6ff, #ff6b01);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 500;
+   color: #f1f5f9;
   letter-spacing: 0.5px;
 }
 
 .report-subtitle {
   font-size: 1.25rem;
   font-weight: 500;
-  color: #94a3b8;
+  color: #f1f5f9;
   margin-top: 0.5rem;
 }
 
@@ -969,4 +806,21 @@ th.n8n, td.n8n { width: 100px; }
 
 .recharts-yAxis .recharts-cartesian-axis-tick text {
   white-space: nowrap; /* force single-line labels */
+}
+
+.chart-scroll-container {
+  max-height: 700px;
+  overflow-y: auto;
+  padding-right: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.chart-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
 }

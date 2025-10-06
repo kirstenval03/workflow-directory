@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ReactComponent as WhiteLogo } from '../styles/logo-white.svg';
 
 export default function AIReportResults() {
   const { id } = useParams();
@@ -60,28 +61,19 @@ export default function AIReportResults() {
   const result = report.report_json || {};
   const { report_summary, efficiency_gaps, painpoints, implementation_roadmap, cost_and_cta, risk_reversal } = result;
 
-  // Flatten efficiency gaps for bar chart
-  const chartData = efficiency_gaps
-    ? efficiency_gaps.flatMap((pillarObj) =>
-        Object.entries(pillarObj.subpillars).map(([sub, score]) => ({
-          name: `${pillarObj.pillar} — ${sub.replace('_score', '').replace(/_/g, ' ')}`,
-          score,
-          color:
-            score <= 30
-              ? '#ef4444' // red
-              : score <= 70
-              ? '#facc15' // yellow
-              : '#22c55e', // green
-        }))
-      )
-    : [];
-
   return (
     <div className="report-container">
-      {/* TITLE */}
+      {/* HEADER */}
       <header className="report-header">
-        <h1 className="report-title">AI Opportunity Report</h1>
-        {report.company_name && <h3 className="report-subtitle">{report.company_name}</h3>}
+        <div className="report-header-gradient">
+          <WhiteLogo className="report-logo" />
+          <div className="report-header-text">
+            <h1 className="report-title">AI Opportunity Report</h1>
+            {report.company_name && (
+              <h3 className="report-subtitle">Prepared for: {report.company_name}</h3>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* SUMMARY */}
@@ -90,78 +82,80 @@ export default function AIReportResults() {
         <p className="section-paragraph">{report_summary}</p>
       </section>
 
-      {/* BIGGEST LEVERS */}
+      {/* EFFICIENCY GAPS */}
       <section className="report-section levers-section">
         <h2 className="section-title">Biggest Levers — Where AI Can Create the Fastest Impact</h2>
-        {chartData.length > 0 ? (
-         <div className="chart-container">
-  <div className="chart-scroll-container">
-    <ResponsiveContainer
-      width="100%"
-      height={Math.min(chartData.length * 55, 700)}
-    >
-      <BarChart
-        data={chartData}
-        layout="vertical"
-        margin={{ top: 10, right: 40, left: 160, bottom: 10 }}
-        barGap={10}
-      >
-        <XAxis type="number" domain={[0, 100]} />
-        <YAxis
-          dataKey="name"
-          type="category"
-          interval={0}
-          width={160}
-          tickMargin={10}
-          tick={({ x, y, payload }) => (
-            <text
-              x={x}
-              y={y + 4}
-              fill="#cbd5e1"
-              fontSize={13}
-              textAnchor="end"
-              style={{
-                overflow: 'visible',
-                whiteSpace: 'pre', // keep all text on one line
-              }}
-            >
-              {payload.value}
-            </text>
-          )}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: '#0f172a',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            color: '#f8fafc',
-            fontSize: 13,
-          }}
-        />
-        <Bar
-          dataKey="score"
-          radius={[8, 8, 8, 8]}
-          barSize={18}
-          label={{
-            position: 'right',
-            fill: '#E2E8F0',
-            fontSize: 12,
-          }}
-        >
-          {chartData.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={entry.color}
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth={1}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
-</div>
 
+        {efficiency_gaps?.length > 0 ? (
+          <div className="chart-grouped-container">
+            {efficiency_gaps.map((pillarObj, index) => {
+              const pillarData = Object.entries(pillarObj.subpillars).map(([sub, score]) => ({
+                name: sub.replace('_score', '').replace(/_/g, ' '),
+                score,
+                color:
+                  score <= 30
+                    ? '#ef4444' // red
+                    : score <= 70
+                    ? '#facc15' // yellow
+                    : '#22c55e', // green
+              }));
+
+              return (
+                <div key={index} className="pillar-section">
+                  <h3 className="pillar-title">{pillarObj.pillar}</h3>
+
+                  <ResponsiveContainer
+                    width="100%"
+                    height={Math.min(pillarData.length * 45, 300)}
+                  >
+                    <BarChart
+                      data={pillarData}
+                      layout="vertical"
+                      margin={{ top: 10, right: 40, left: 160, bottom: 10 }}
+                    >
+                      <XAxis type="number" domain={[0, 100]} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        interval={0}
+                        width={160}
+                        tick={({ x, y, payload }) => (
+                          <text
+                            x={x}
+                            y={y + 4}
+                            fill="#cbd5e1"
+                            fontSize={13}
+                            textAnchor="end"
+                          >
+                            {payload.value}
+                          </text>
+                        )}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0f172a',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          color: '#f8fafc',
+                          fontSize: 13,
+                        }}
+                      />
+                      <Bar dataKey="score" radius={[8, 8, 8, 8]} barSize={18}>
+                        {pillarData.map((entry, i) => (
+                          <Cell
+                            key={`cell-${i}`}
+                            fill={entry.color}
+                            stroke="rgba(255,255,255,0.15)"
+                            strokeWidth={1}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <p>No efficiency data found.</p>
         )}
@@ -169,10 +163,13 @@ export default function AIReportResults() {
 
       {/* OPPORTUNITIES */}
       <section className="report-section opportunities-section">
-        <h2 className="section-title">Opportunities</h2>
+        <h2 className="section-title">Biggest Opportunities</h2>
         {painpoints?.map((p, i) => (
           <div key={i} className="opportunity-card glass-card">
-            <h3 className="opportunity-title">⚠️ {p.opportunity_title}</h3>
+            <h3 className="opportunity-title">
+              ⚠️ {`${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} Biggest Opportunity:`}{' '}
+              {p.opportunity_title}
+            </h3>
             {p.original_quote && (
               <blockquote className="opportunity-quote">“{p.original_quote}”</blockquote>
             )}
@@ -227,7 +224,7 @@ export default function AIReportResults() {
                 </h4>
                 <ul>
                   {tasks.map((task, tIndex) => (
-                    <li key={tIndex}>• {task}</li>
+                    <li key={tIndex}>{task}</li>
                   ))}
                 </ul>
               </div>
@@ -238,7 +235,7 @@ export default function AIReportResults() {
 
       {/* COST & CTA */}
       <section className="report-section cost-section">
-        <h2 className="section-title">Cost Comparison & Next Steps</h2>
+        <h2 className="section-title">Next Steps</h2>
         <div className="cost-details">
           <p>
             <strong>Agency Cost Range:</strong> {cost_and_cta?.agency_cost_range}
@@ -257,7 +254,7 @@ export default function AIReportResults() {
 
       {/* RISK REVERSAL */}
       <section className="report-section risk-section">
-        <h2 className="section-title">Risk Reversal — Cost of Inaction</h2>
+        <h2 className="section-title">Why This Can’t Wait…</h2>
         <p className="risk-summary">{risk_reversal?.summary}</p>
         <div className="risk-metrics">
           <p>
