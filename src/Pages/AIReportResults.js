@@ -68,7 +68,6 @@ export default function AIReportResults() {
     risk_reversal,
   } = result;
 
-  
   // ----------------------------
   // 🧮 COST CALCULATIONS (Totals)
   // ----------------------------
@@ -105,6 +104,27 @@ export default function AIReportResults() {
     ? `$${totalMonthlyMin.toLocaleString()}/month`
     : 'Data unavailable';
 
+  // ----------------------------
+  // 🧩 SORT OPPORTUNITIES BY LOWEST SUBPILLAR SCORE
+  // ----------------------------
+  const subpillarScores = {};
+  efficiency_gaps?.forEach((pillar) => {
+    Object.entries(pillar.subpillars).forEach(([sub, score]) => {
+      const cleanSub = sub.replace('_score', '').trim().toLowerCase();
+      subpillarScores[cleanSub] = score;
+    });
+  });
+
+  const sortedPainpoints = [...(painpoints || [])].sort((a, b) => {
+    const aSub =
+      a.workflow_recommendations?.[0]?.workflow_subpillar?.toLowerCase() || '';
+    const bSub =
+      b.workflow_recommendations?.[0]?.workflow_subpillar?.toLowerCase() || '';
+    const aScore = subpillarScores[aSub] ?? 999;
+    const bScore = subpillarScores[bSub] ?? 999;
+    return aScore - bScore; // lowest score (highest opportunity) first
+  });
+
   return (
     <div className="report-container">
       {/* HEADER */}
@@ -114,7 +134,9 @@ export default function AIReportResults() {
           <div className="report-header-text">
             <h1 className="report-title">AI Opportunity Report</h1>
             {report.company_name && (
-              <h3 className="report-subtitle">Prepared for: {report.company_name}</h3>
+              <h3 className="report-subtitle">
+                Prepared for: {report.company_name}
+              </h3>
             )}
           </div>
         </div>
@@ -128,17 +150,25 @@ export default function AIReportResults() {
 
       {/* EFFICIENCY GAPS */}
       <section className="report-section levers-section">
-        <h2 className="section-title">Biggest Levers — Where AI Can Create the Fastest Impact</h2>
+        <h2 className="section-title">
+          Biggest Levers — Where AI Can Create the Fastest Impact
+        </h2>
 
         {efficiency_gaps?.length > 0 ? (
           <div className="chart-grouped-container">
             {efficiency_gaps.map((pillarObj, index) => {
-              const pillarData = Object.entries(pillarObj.subpillars).map(([sub, score]) => ({
-                name: sub.replace('_score', '').replace(/_/g, ' '),
-                score,
-                color:
-                  score <= 30 ? '#ef4444' : score <= 70 ? '#facc15' : '#22c55e',
-              }));
+              const pillarData = Object.entries(pillarObj.subpillars).map(
+                ([sub, score]) => ({
+                  name: sub.replace('_score', '').replace(/_/g, ' '),
+                  score,
+                  color:
+                    score <= 30
+                      ? '#ef4444'
+                      : score <= 70
+                      ? '#facc15'
+                      : '#22c55e',
+                })
+              );
 
               return (
                 <div key={index} className="pillar-section">
@@ -201,195 +231,238 @@ export default function AIReportResults() {
       </section>
 
 {/* OPPORTUNITIES */}
-      <section className="report-section opportunities-section">
-        <h2 className="section-title">Biggest Opportunities</h2>
-        {painpoints?.map((p, i) => (
-          <div key={i} className="opportunity-card glass-card">
-            <h3 className="opportunity-title">
-              ⚠️ {`${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} Biggest Opportunity:`}{' '}
-              {p.opportunity_title}
-            </h3>
+<section className="report-section opportunities-section">
+  <h2 className="section-title">Biggest Opportunities</h2>
+  {sortedPainpoints?.map((p, i) => {
+   const firstWorkflow = p.workflow_recommendations?.[0];
+const subpillar = firstWorkflow?.workflow_subpillar?.toLowerCase().trim() || '';
 
-            {p.original_quote && (
-              <blockquote className="opportunity-quote">“{p.original_quote}”</blockquote>
-            )}
+// try exact match first
+let score = subpillarScores[subpillar];
 
-            {p.workflow_recommendations?.map((w, j) => (
-              <div key={j} className="workflow-block">
-                {/* Workflow Name */}
-                <h4 className="workflow-name">{w.workflow_name}</h4>
+// if not found, try fuzzy match (partial includes)
+if (score === undefined) {
+  const matchKey = Object.keys(subpillarScores).find((key) =>
+    key.includes(subpillar.split(' ')[0]) // check for first keyword match
+  );
+  if (matchKey) score = subpillarScores[matchKey];
+}
 
-                {/* Pillar + Subpillar subtitle */}
-                {(w.workflow_pillar || w.workflow_subpillar) && (
-                  <p className="workflow-pillar-sub">
-                    {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
-                    {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
-                  </p>
-                )}
+// default if still not found
+if (score === undefined) score = null;
 
-                {/* Description */}
-                <p className="workflow-description">{w.workflow_description}</p>
+    // color logic like the charts
+    const color =
+      score === null
+        ? '#64748b'
+        : score <= 30
+        ? '#ef4444'
+        : score <= 70
+        ? '#facc15'
+        : '#22c55e';
 
-                {/* Benefits */}
-                <ul className="workflow-benefits">
-                  {w.benefits?.slice(0, 2).map((b, idx) => (
-                    <li key={`pos-${idx}`}>{b}</li>
-                  ))}
-                  {w.benefits?.slice(2).map((b, idx) => (
-                    <li key={`neg-${idx}`}>{b}</li>
-                  ))}
-                </ul>
+    return (
+      <div key={i} className="opportunity-card glass-card">
+        <h3 className="opportunity-title">
+          ⚠️{' '}
+          {`${i + 1}${
+            i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'
+          } Biggest Opportunity:`}{' '}
+          {p.opportunity_title}
+        </h3>
 
-                {/* ROI Section */}
-                {w.roi_projection && (
-                  <div className="roi-section">
-                    <p>
-                      <strong>⏱ Weekly Savings:</strong> {w.roi_projection.weekly_savings}
-                    </p>
-                    <p>
-                      <strong>📆 Annual Projection:</strong> {w.roi_projection.annual_projection}
-                    </p>
-                    <p>
-                      <strong>⚙️ Implementation Timeline:</strong>{' '}
-                      {w.roi_projection.implementation_timeline}
-                    </p>
-                    <p>
-                      <strong>💸 Agency Comparison:</strong>{' '}
-                      {w.roi_projection.agency_comparison}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-      </section>
+        {p.original_quote && (
+          <blockquote className="opportunity-quote">“{p.original_quote}”</blockquote>
+        )}
 
-      {/* IMPLEMENTATION ROADMAP */}
-{/* IMPLEMENTATION ROADMAP */}
-<section className="report-section roadmap-section">
-  <h2 className="section-title">Implementation Roadmap</h2>
-
-  <div className="roadmap-grid">
-    {Object.entries(implementation_roadmap || {}).map(([week, tasks], idx) =>
-      week !== 'total_weeks' ? (
-        <div key={idx} className="roadmap-card glass-card">
-          <div className="roadmap-card-header">
-            <div className="roadmap-week-number">Week {idx + 1}</div>
-          </div>
-          <ul className="roadmap-task-list">
-            {tasks.map((task, tIndex) => (
-              <li key={tIndex}>{task}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null
-    )}
-  </div>
-</section>
-
-
-      {/* COST BREAKDOWN */}
-     <section className="report-section cost-section">
-  <h2 className="section-title">Cost Breakdown</h2>
-
-  <div className="cost-grid">
-    {/* Agency Costs */}
-    <div className="cost-column">
-      <h3 className="cost-column-title">Agency Costs</h3>
-      <div className="cost-card glass-card">
-        <p>
-          <strong>Agency Install Estimate:</strong> {agencyCostTotalStr}
-        </p>
-        <p>
-          <strong>Monthly Maintenance (min):</strong> {monthlyMaintenanceTotalStr}
-        </p>
-      </div>
-    </div>
-
-    {/* With AI Architechs */}
-    <div className="cost-column">
-      <h3 className="cost-column-title">With AI Architechs</h3>
-      <div className="cost-card glass-card reveal-card">
-        {!revealPrice ? (
-          <div className="blur-overlay">
-            <div className="lock-icon">
-              <span role="img" aria-label="lock">🔒</span>
+        {/* SCORE VISUAL */}
+        {score !== null && (
+          <div className="score-visual">
+            <div className="score-bar">
+              <div
+                className="score-fill"
+                style={{ width: `${score}%`, backgroundColor: color }}
+              ></div>
             </div>
-            <button
-              onClick={() => setRevealPrice(true)}
-              className="reveal-btn"
-            >
-              Click to Reveal
-            </button>
-          </div>
-        ) : (
-          <div className="reveal-content">
-            <p>
-              <strong>One-Time Fee:</strong> $5,000
-            </p>
-            <p className="cta-note">
-              With ongoing support at only <strong>$10–15/hr</strong>.
+            <p className="score-text">
+              <strong>{firstWorkflow?.workflow_subpillar}</strong>: {score}/100
             </p>
           </div>
         )}
+
+        {p.workflow_recommendations?.map((w, j) => (
+          <div key={j} className="workflow-block">
+            <h4 className="workflow-name">{w.workflow_name}</h4>
+
+            {(w.workflow_pillar || w.workflow_subpillar) && (
+              <p className="workflow-pillar-sub">
+                {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
+                {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
+              </p>
+            )}
+
+            <p className="workflow-description">{w.workflow_description}</p>
+
+            <ul className="workflow-benefits">
+              {w.benefits?.slice(0, 2).map((b, idx) => (
+                <li key={`pos-${idx}`}>{b}</li>
+              ))}
+              {w.benefits?.slice(2).map((b, idx) => (
+                <li key={`neg-${idx}`}>{b}</li>
+              ))}
+            </ul>
+
+            {w.roi_projection && (
+              <div className="roi-section">
+                <p>
+                  <strong>⏱ Weekly Savings:</strong> {w.roi_projection.weekly_savings}
+                </p>
+                <p>
+                  <strong>📆 Annual Projection:</strong> {w.roi_projection.annual_projection}
+                </p>
+                <p>
+                  <strong>⚙️ Implementation Timeline:</strong>{' '}
+                  {w.roi_projection.implementation_timeline}
+                </p>
+                <p>
+                  <strong>💸 Agency Comparison:</strong>{' '}
+                  {w.roi_projection.agency_comparison}
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
-  </div>
+    );
+  })}
 </section>
 
-{/* NEXT STEPS */}
-<section className="report-section next-steps-split">
-  <div className="next-steps-left">
-    <h2 className="section-title">Next Steps</h2>
-    <p className="section-subtitle">
-      A quick, guided path to get your in-house AI Architech placed and building inside your business.
-    </p>
-  </div>
 
-  <div className="next-steps-right">
-    {[
-      {
-        number: '01',
-        title: 'Complete Your Enrollment',
-        description: 'Secure your spot and begin your AI Architect placement.',
-      },
-      {
-        number: '02',
-        title: 'Sign Your Agreement',
-        description: 'You’ll automatically receive your service agreement right after enrollment.',
-      },
-      {
-        number: '03',
-        title: 'Meet Your Recruiting Concierge (Within 24 Hours)',
-        description:
-          'We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.',
-      },
-      {
-        number: '04',
-        title: 'AI Implementation Call (Within 3 Days)',
-        description:
-          'Our team will walk you through your custom AI Workflow Blueprint and launch plan.',
-      },
-      {
-        number: '05',
-        title: 'Interview Top Candidates (Within 7 Days)',
-        description:
-          'You’ll meet three hand-selected AI-Architechs vetted for your business needs.',
-      },
-    ].map((step, idx) => (
-      <div key={idx} className="step-card glass-card">
-        <div className="step-number bg-gradient-to-tr from-blue-400 to-orange-500">
-          <span>{step.number}</span>
+      {/* IMPLEMENTATION ROADMAP */}
+      <section className="report-section roadmap-section">
+        <h2 className="section-title">Implementation Roadmap</h2>
+        <div className="roadmap-grid">
+          {Object.entries(implementation_roadmap || {}).map(([week, tasks], idx) =>
+            week !== 'total_weeks' ? (
+              <div key={idx} className="roadmap-card glass-card">
+                <div className="roadmap-card-header">
+                  <div className="roadmap-week-number">Week {idx + 1}</div>
+                </div>
+                <ul className="roadmap-task-list">
+                  {tasks.map((task, tIndex) => (
+                    <li key={tIndex}>{task}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null
+          )}
         </div>
-        <div className="step-content">
-          <h3 className="step-title">{step.title}</h3>
-          <p className="step-description">{step.description}</p>
+      </section>
+
+      {/* COST BREAKDOWN */}
+      <section className="report-section cost-section">
+        <h2 className="section-title">Cost Breakdown</h2>
+
+        <div className="cost-grid">
+          {/* Agency Costs */}
+          <div className="cost-column">
+            <h3 className="cost-column-title">Agency Costs</h3>
+            <div className="cost-card glass-card">
+              <p>
+                <strong>Agency Install Estimate:</strong> {agencyCostTotalStr}
+              </p>
+              <p>
+                <strong>Monthly Maintenance (min):</strong>{' '}
+                {monthlyMaintenanceTotalStr}
+              </p>
+            </div>
+          </div>
+
+          {/* With AI Architechs */}
+          <div className="cost-column">
+            <h3 className="cost-column-title">With AI Architechs</h3>
+            <div className="cost-card glass-card reveal-card">
+              {!revealPrice ? (
+                <div className="blur-overlay">
+                  <div className="lock-icon">
+                    <span role="img" aria-label="lock">
+                      🔒
+                    </span>
+                  </div>
+                  <button onClick={() => setRevealPrice(true)} className="reveal-btn">
+                    Click to Reveal
+                  </button>
+                </div>
+              ) : (
+                <div className="reveal-content">
+                  <p>
+                    <strong>One-Time Fee:</strong> $5,000
+                  </p>
+                  <p className="cta-note">
+                    With ongoing support at only <strong>$10–15/hr</strong>.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
-</section>
+      </section>
+
+      {/* NEXT STEPS */}
+      <section className="report-section next-steps-split">
+        <div className="next-steps-left">
+          <h2 className="section-title">Next Steps</h2>
+          <p className="section-subtitle">
+            A quick, guided path to get your in-house AI Architech placed and building
+            inside your business.
+          </p>
+        </div>
+
+        <div className="next-steps-right">
+          {[
+            {
+              number: '01',
+              title: 'Complete Your Enrollment',
+              description:
+                'Secure your spot and begin your AI Architect placement.',
+            },
+            {
+              number: '02',
+              title: 'Sign Your Agreement',
+              description:
+                'You’ll automatically receive your service agreement right after enrollment.',
+            },
+            {
+              number: '03',
+              title: 'Meet Your Recruiting Concierge (Within 24 Hours)',
+              description:
+                'We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.',
+            },
+            {
+              number: '04',
+              title: 'AI Implementation Call (Within 3 Days)',
+              description:
+                'Our team will walk you through your custom AI Workflow Blueprint and launch plan.',
+            },
+            {
+              number: '05',
+              title: 'Interview Top Candidates (Within 7 Days)',
+              description:
+                'You’ll meet three hand-selected AI-Architechs vetted for your business needs.',
+            },
+          ].map((step, idx) => (
+            <div key={idx} className="step-card glass-card">
+              <div className="step-number bg-gradient-to-tr from-blue-400 to-orange-500">
+                <span>{step.number}</span>
+              </div>
+              <div className="step-content">
+                <h3 className="step-title">{step.title}</h3>
+                <p className="step-description">{step.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* RISK REVERSAL */}
       <section className="report-section risk-section">
