@@ -68,6 +68,7 @@ export default function AIReportResults() {
     risk_reversal,
   } = result;
 
+  
   // ----------------------------
   // 🧮 COST CALCULATIONS (Totals)
   // ----------------------------
@@ -197,6 +198,92 @@ export default function AIReportResults() {
         ) : (
           <p>No efficiency data found.</p>
         )}
+      </section>
+
+{/* OPPORTUNITIES */}
+      <section className="report-section opportunities-section">
+        <h2 className="section-title">Biggest Opportunities</h2>
+        {painpoints?.map((p, i) => (
+          <div key={i} className="opportunity-card glass-card">
+            <h3 className="opportunity-title">
+              ⚠️ {`${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} Biggest Opportunity:`}{' '}
+              {p.opportunity_title}
+            </h3>
+
+            {p.original_quote && (
+              <blockquote className="opportunity-quote">“{p.original_quote}”</blockquote>
+            )}
+
+            {p.workflow_recommendations?.map((w, j) => (
+              <div key={j} className="workflow-block">
+                {/* Workflow Name */}
+                <h4 className="workflow-name">{w.workflow_name}</h4>
+
+                {/* Pillar + Subpillar subtitle */}
+                {(w.workflow_pillar || w.workflow_subpillar) && (
+                  <p className="workflow-pillar-sub">
+                    {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
+                    {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
+                  </p>
+                )}
+
+                {/* Description */}
+                <p className="workflow-description">{w.workflow_description}</p>
+
+                {/* Benefits */}
+                <ul className="workflow-benefits">
+                  {w.benefits?.slice(0, 2).map((b, idx) => (
+                    <li key={`pos-${idx}`}>{b}</li>
+                  ))}
+                  {w.benefits?.slice(2).map((b, idx) => (
+                    <li key={`neg-${idx}`}>{b}</li>
+                  ))}
+                </ul>
+
+                {/* ROI Section */}
+                {w.roi_projection && (
+                  <div className="roi-section">
+                    <p>
+                      <strong>⏱ Weekly Savings:</strong> {w.roi_projection.weekly_savings}
+                    </p>
+                    <p>
+                      <strong>📆 Annual Projection:</strong> {w.roi_projection.annual_projection}
+                    </p>
+                    <p>
+                      <strong>⚙️ Implementation Timeline:</strong>{' '}
+                      {w.roi_projection.implementation_timeline}
+                    </p>
+                    <p>
+                      <strong>💸 Agency Comparison:</strong>{' '}
+                      {w.roi_projection.agency_comparison}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+
+      {/* IMPLEMENTATION ROADMAP */}
+      <section className="report-section roadmap-section">
+        <h2 className="section-title">Implementation Roadmap</h2>
+        <div className="roadmap-list">
+          {Object.entries(implementation_roadmap || {}).map(([week, tasks]) =>
+            week !== 'total_weeks' ? (
+              <div key={week} className="roadmap-week">
+                <h4 className="roadmap-week-title">
+                  {week.replace('_', ' ').toUpperCase()}
+                </h4>
+                <ul>
+                  {tasks.map((task, tIndex) => (
+                    <li key={tIndex}>{task}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null
+          )}
+        </div>
       </section>
 
       {/* COST BREAKDOWN */}
