@@ -9,6 +9,7 @@ export default function AIReportResults() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [revealPrice, setRevealPrice] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -64,7 +65,6 @@ export default function AIReportResults() {
     efficiency_gaps,
     painpoints,
     implementation_roadmap,
-    cost_and_cta,
     risk_reversal,
   } = result;
 
@@ -78,7 +78,6 @@ export default function AIReportResults() {
       )
     ) || [];
 
-  // Sum of all setup fees like "$5,000 setup + $1,500–2,500/mo"
   const setupFees = agencyComparisons
     .map((text) => {
       const m = text.match(/\$([\d,]+)\s*setup/i);
@@ -88,7 +87,6 @@ export default function AIReportResults() {
 
   const totalSetup = setupFees.reduce((sum, n) => sum + n, 0);
 
-  // Sum of lowest monthly value from each range like "$800-1,500/mo" or "$800–1,500/mo"
   const monthlyMins = agencyComparisons
     .map((text) => {
       const m = text.match(/\$\s*([\d,]+)\s*(?:[-–]\s*[\d,]+)?\s*\/mo/i);
@@ -144,7 +142,6 @@ export default function AIReportResults() {
               return (
                 <div key={index} className="pillar-section">
                   <h3 className="pillar-title">{pillarObj.pillar}</h3>
-
                   <ResponsiveContainer
                     width="100%"
                     height={Math.min(pillarData.length * 45, 300)}
@@ -202,102 +199,109 @@ export default function AIReportResults() {
         )}
       </section>
 
-      {/* OPPORTUNITIES */}
-      <section className="report-section opportunities-section">
-        <h2 className="section-title">Biggest Opportunities</h2>
-        {painpoints?.map((p, i) => (
-          <div key={i} className="opportunity-card glass-card">
-            <h3 className="opportunity-title">
-              ⚠️ {`${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} Biggest Opportunity:`}{' '}
-              {p.opportunity_title}
-            </h3>
-            {p.original_quote && (
-              <blockquote className="opportunity-quote">“{p.original_quote}”</blockquote>
-            )}
+      {/* COST BREAKDOWN */}
+     <section className="report-section cost-section">
+  <h2 className="section-title">Cost Breakdown</h2>
 
-            {p.workflow_recommendations?.map((w, j) => (
-              <div key={j} className="workflow-block">
-                <h4 className="workflow-name">{w.workflow_name}</h4>
+  <div className="cost-grid">
+    {/* Agency Costs */}
+    <div className="cost-column">
+      <h3 className="cost-column-title">Agency Costs</h3>
+      <div className="cost-card glass-card">
+        <p>
+          <strong>Agency Install Estimate:</strong> {agencyCostTotalStr}
+        </p>
+        <p>
+          <strong>Monthly Maintenance (min):</strong> {monthlyMaintenanceTotalStr}
+        </p>
+      </div>
+    </div>
 
-                {(w.workflow_pillar || w.workflow_subpillar) && (
-                  <p className="workflow-pillar-sub">
-                    {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
-                    {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
-                  </p>
-                )}
-
-                <p className="workflow-description">{w.workflow_description}</p>
-
-                <ul className="workflow-benefits">
-                  {w.benefits?.slice(0, 2).map((b, idx) => (
-                    <li key={`pos-${idx}`}>{b}</li>
-                  ))}
-                  {w.benefits?.slice(2).map((b, idx) => (
-                    <li key={`neg-${idx}`}>{b}</li>
-                  ))}
-                </ul>
-
-                {w.roi_projection && (
-                  <div className="roi-section">
-                    <p>
-                      <strong>⏱ Weekly Savings:</strong> {w.roi_projection.weekly_savings}
-                    </p>
-                    <p>
-                      <strong>📆 Annual Projection:</strong> {w.roi_projection.annual_projection}
-                    </p>
-                    <p>
-                      <strong>⚙️ Implementation Timeline:</strong>{' '}
-                      {w.roi_projection.implementation_timeline}
-                    </p>
-                    <p>
-                      <strong>💸 Agency Comparison:</strong>{' '}
-                      {w.roi_projection.agency_comparison}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
+    {/* With AI Architechs */}
+    <div className="cost-column">
+      <h3 className="cost-column-title">With AI Architechs</h3>
+      <div className="cost-card glass-card reveal-card">
+        {!revealPrice ? (
+          <div className="blur-overlay">
+            <div className="lock-icon">
+              <span role="img" aria-label="lock">🔒</span>
+            </div>
+            <button
+              onClick={() => setRevealPrice(true)}
+              className="reveal-btn"
+            >
+              Click to Reveal
+            </button>
           </div>
-        ))}
-      </section>
+        ) : (
+          <div className="reveal-content">
+            <p>
+              <strong>One-Time Fee:</strong> $5,000
+            </p>
+            <p className="cta-note">
+              With ongoing support at only <strong>$10–15/hr</strong>.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</section>
 
-      {/* IMPLEMENTATION ROADMAP */}
-      <section className="report-section roadmap-section">
-        <h2 className="section-title">Implementation Roadmap</h2>
-        <div className="roadmap-list">
-          {Object.entries(implementation_roadmap || {}).map(([week, tasks]) =>
-            week !== 'total_weeks' ? (
-              <div key={week} className="roadmap-week">
-                <h4 className="roadmap-week-title">
-                  {week.replace('_', ' ').toUpperCase()}
-                </h4>
-                <ul>
-                  {tasks.map((task, tIndex) => (
-                    <li key={tIndex}>{task}</li>
-                  ))}
-                </ul>
+      {/* NEXT STEPS */}
+      <section className="report-section next-steps-section">
+        <h2 className="section-title">Next Steps</h2>
+        <p className="section-subtitle">
+          A quick, guided path to get your in-house AI Architech placed and building inside your business.
+        </p>
+
+        <div className="steps-container">
+          {[
+            {
+              number: '01',
+              title: 'Complete Your Enrollment',
+              description: 'Secure your spot and begin your AI Architect placement.',
+            },
+            {
+              number: '02',
+              title: 'Sign Your Agreement',
+              description: 'You’ll automatically receive your service agreement right after enrollment.',
+            },
+            {
+              number: '03',
+              title: 'Meet Your Recruiting Concierge (Within 24 Hours)',
+              description:
+                'We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.',
+            },
+            {
+              number: '04',
+              title: 'AI Implementation Call (Within 3 Days)',
+              description:
+                'Our team will walk you through your custom AI Workflow Blueprint and launch plan.',
+            },
+            {
+              number: '05',
+              title: 'Interview Your Top 3 Candidates (Within 7 Days)',
+              description:
+                'You’ll meet three hand-selected AI-Architechs vetted for your business needs.',
+            },
+            {
+              number: '06',
+              title: 'Choose Your Perfect Fit',
+              description:
+                'Once selected, your AI-Architech begins implementation immediately inside your business.',
+            },
+          ].map((step, idx) => (
+            <div key={idx} className="step-card glass-card">
+              <div className="step-number">
+                <span>{step.number}</span>
               </div>
-            ) : null
-          )}
-        </div>
-      </section>
-
-      {/* COST & CTA */}
-      <section className="report-section cost-section">
-        <h2 className="section-title">Cost Breakdown</h2>
-        <div className="cost-details">
-          <p>
-            <strong>Agency Cost:</strong> {agencyCostTotalStr} upfront
-          </p>
-          <p>
-            <strong>Monthly Maintenance (min):</strong> {monthlyMaintenanceTotalStr}
-          </p>
-          <p>
-            <strong>When you go with AI Architects, you pay a once time fee of:</strong> $5000
-          </p>
-          <p className="cta-note">
-            With on-going support at only <strong>$10–15/hr</strong>.
-          </p>
+              <div className="step-content">
+                <h3 className="step-title">{step.title}</h3>
+                <p className="step-description">{step.description}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
