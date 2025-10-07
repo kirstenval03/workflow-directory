@@ -266,25 +266,28 @@ export default function AIReportResults() {
       </section>
 
       {/* IMPLEMENTATION ROADMAP */}
-      <section className="report-section roadmap-section">
-        <h2 className="section-title">Implementation Roadmap</h2>
-        <div className="roadmap-list">
-          {Object.entries(implementation_roadmap || {}).map(([week, tasks]) =>
-            week !== 'total_weeks' ? (
-              <div key={week} className="roadmap-week">
-                <h4 className="roadmap-week-title">
-                  {week.replace('_', ' ').toUpperCase()}
-                </h4>
-                <ul>
-                  {tasks.map((task, tIndex) => (
-                    <li key={tIndex}>{task}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null
-          )}
+{/* IMPLEMENTATION ROADMAP */}
+<section className="report-section roadmap-section">
+  <h2 className="section-title">Implementation Roadmap</h2>
+
+  <div className="roadmap-grid">
+    {Object.entries(implementation_roadmap || {}).map(([week, tasks], idx) =>
+      week !== 'total_weeks' ? (
+        <div key={idx} className="roadmap-card glass-card">
+          <div className="roadmap-card-header">
+            <div className="roadmap-week-number">Week {idx + 1}</div>
+          </div>
+          <ul className="roadmap-task-list">
+            {tasks.map((task, tIndex) => (
+              <li key={tIndex}>{task}</li>
+            ))}
+          </ul>
         </div>
-      </section>
+      ) : null
+    )}
+  </div>
+</section>
+
 
       {/* COST BREAKDOWN */}
      <section className="report-section cost-section">
@@ -335,62 +338,58 @@ export default function AIReportResults() {
   </div>
 </section>
 
-      {/* NEXT STEPS */}
-      <section className="report-section next-steps-section">
-        <h2 className="section-title">Next Steps</h2>
-        <p className="section-subtitle">
-          A quick, guided path to get your in-house AI Architech placed and building inside your business.
-        </p>
+{/* NEXT STEPS */}
+<section className="report-section next-steps-split">
+  <div className="next-steps-left">
+    <h2 className="section-title">Next Steps</h2>
+    <p className="section-subtitle">
+      A quick, guided path to get your in-house AI Architech placed and building inside your business.
+    </p>
+  </div>
 
-        <div className="steps-container">
-          {[
-            {
-              number: '01',
-              title: 'Complete Your Enrollment',
-              description: 'Secure your spot and begin your AI Architect placement.',
-            },
-            {
-              number: '02',
-              title: 'Sign Your Agreement',
-              description: 'You’ll automatically receive your service agreement right after enrollment.',
-            },
-            {
-              number: '03',
-              title: 'Meet Your Recruiting Concierge (Within 24 Hours)',
-              description:
-                'We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.',
-            },
-            {
-              number: '04',
-              title: 'AI Implementation Call (Within 3 Days)',
-              description:
-                'Our team will walk you through your custom AI Workflow Blueprint and launch plan.',
-            },
-            {
-              number: '05',
-              title: 'Interview Your Top 3 Candidates (Within 7 Days)',
-              description:
-                'You’ll meet three hand-selected AI-Architechs vetted for your business needs.',
-            },
-            {
-              number: '06',
-              title: 'Choose Your Perfect Fit',
-              description:
-                'Once selected, your AI-Architech begins implementation immediately inside your business.',
-            },
-          ].map((step, idx) => (
-            <div key={idx} className="step-card glass-card">
-              <div className="step-number">
-                <span>{step.number}</span>
-              </div>
-              <div className="step-content">
-                <h3 className="step-title">{step.title}</h3>
-                <p className="step-description">{step.description}</p>
-              </div>
-            </div>
-          ))}
+  <div className="next-steps-right">
+    {[
+      {
+        number: '01',
+        title: 'Complete Your Enrollment',
+        description: 'Secure your spot and begin your AI Architect placement.',
+      },
+      {
+        number: '02',
+        title: 'Sign Your Agreement',
+        description: 'You’ll automatically receive your service agreement right after enrollment.',
+      },
+      {
+        number: '03',
+        title: 'Meet Your Recruiting Concierge (Within 24 Hours)',
+        description:
+          'We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.',
+      },
+      {
+        number: '04',
+        title: 'AI Implementation Call (Within 3 Days)',
+        description:
+          'Our team will walk you through your custom AI Workflow Blueprint and launch plan.',
+      },
+      {
+        number: '05',
+        title: 'Interview Top Candidates (Within 7 Days)',
+        description:
+          'You’ll meet three hand-selected AI-Architechs vetted for your business needs.',
+      },
+    ].map((step, idx) => (
+      <div key={idx} className="step-card glass-card">
+        <div className="step-number bg-gradient-to-tr from-blue-400 to-orange-500">
+          <span>{step.number}</span>
         </div>
-      </section>
+        <div className="step-content">
+          <h3 className="step-title">{step.title}</h3>
+          <p className="step-description">{step.description}</p>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
 
       {/* RISK REVERSAL */}
       <section className="report-section risk-section">
