@@ -59,7 +59,52 @@ export default function AIReportResults() {
   }
 
   const result = report.report_json || {};
-  const { report_summary, efficiency_gaps, painpoints, implementation_roadmap, cost_and_cta, risk_reversal } = result;
+  const {
+    report_summary,
+    efficiency_gaps,
+    painpoints,
+    implementation_roadmap,
+    cost_and_cta,
+    risk_reversal,
+  } = result;
+
+  // ----------------------------
+  // 🧮 COST CALCULATIONS (Totals)
+  // ----------------------------
+  const agencyComparisons =
+    painpoints?.flatMap((p) =>
+      p.workflow_recommendations?.map(
+        (w) => w.roi_projection?.agency_comparison || ''
+      )
+    ) || [];
+
+  // Sum of all setup fees like "$5,000 setup + $1,500–2,500/mo"
+  const setupFees = agencyComparisons
+    .map((text) => {
+      const m = text.match(/\$([\d,]+)\s*setup/i);
+      return m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+    })
+    .filter((n) => n > 0);
+
+  const totalSetup = setupFees.reduce((sum, n) => sum + n, 0);
+
+  // Sum of lowest monthly value from each range like "$800-1,500/mo" or "$800–1,500/mo"
+  const monthlyMins = agencyComparisons
+    .map((text) => {
+      const m = text.match(/\$\s*([\d,]+)\s*(?:[-–]\s*[\d,]+)?\s*\/mo/i);
+      return m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+    })
+    .filter((n) => n > 0);
+
+  const totalMonthlyMin = monthlyMins.reduce((sum, n) => sum + n, 0);
+
+  const agencyCostTotalStr = totalSetup
+    ? `$${totalSetup.toLocaleString()}`
+    : 'Data unavailable';
+
+  const monthlyMaintenanceTotalStr = totalMonthlyMin
+    ? `$${totalMonthlyMin.toLocaleString()}/month`
+    : 'Data unavailable';
 
   return (
     <div className="report-container">
@@ -93,11 +138,7 @@ export default function AIReportResults() {
                 name: sub.replace('_score', '').replace(/_/g, ' '),
                 score,
                 color:
-                  score <= 30
-                    ? '#ef4444' // red
-                    : score <= 70
-                    ? '#facc15' // yellow
-                    : '#22c55e', // green
+                  score <= 30 ? '#ef4444' : score <= 70 ? '#facc15' : '#22c55e',
               }));
 
               return (
@@ -176,25 +217,23 @@ export default function AIReportResults() {
 
             {p.workflow_recommendations?.map((w, j) => (
               <div key={j} className="workflow-block">
-                
-              <h4 className="workflow-name">{w.workflow_name}</h4>
+                <h4 className="workflow-name">{w.workflow_name}</h4>
 
-            {/* Pillar + Subpillar subtitle */}
-            {(w.workflow_pillar || w.workflow_subpillar) && (
-              <p className="workflow-pillar-sub">
-                {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
-                {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
-              </p>
-            )}
+                {(w.workflow_pillar || w.workflow_subpillar) && (
+                  <p className="workflow-pillar-sub">
+                    {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
+                    {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
+                  </p>
+                )}
 
-            <p className="workflow-description">{w.workflow_description}</p>
-                            
+                <p className="workflow-description">{w.workflow_description}</p>
+
                 <ul className="workflow-benefits">
                   {w.benefits?.slice(0, 2).map((b, idx) => (
-                    <li key={`pos-${idx}`}>✅ {b}</li>
+                    <li key={`pos-${idx}`}>{b}</li>
                   ))}
                   {w.benefits?.slice(2).map((b, idx) => (
-                    <li key={`neg-${idx}`}>❌ {b}</li>
+                    <li key={`neg-${idx}`}>{b}</li>
                   ))}
                 </ul>
 
@@ -245,19 +284,19 @@ export default function AIReportResults() {
 
       {/* COST & CTA */}
       <section className="report-section cost-section">
-        <h2 className="section-title">Next Steps</h2>
+        <h2 className="section-title">Cost Breakdown</h2>
         <div className="cost-details">
           <p>
-            <strong>Agency Cost Range:</strong> {cost_and_cta?.agency_cost_range}
+            <strong>Agency Cost:</strong> {agencyCostTotalStr} upfront
           </p>
           <p>
-            <strong>Monthly Maintenance:</strong> {cost_and_cta?.monthly_maintenance_range}
+            <strong>Monthly Maintenance (min):</strong> {monthlyMaintenanceTotalStr}
           </p>
           <p>
-            <strong>Our Program Cost:</strong> {cost_and_cta?.our_program_cost}
+            <strong>When you go with AI Architects, you pay a once time fee of:</strong> $5000
           </p>
           <p className="cta-note">
-            Includes ongoing in-house support at only <strong>$10–15/hr</strong>.
+            With on-going support at only <strong>$10–15/hr</strong>.
           </p>
         </div>
       </section>

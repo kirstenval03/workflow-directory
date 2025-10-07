@@ -707,8 +707,9 @@ th.n8n, td.n8n { width: 100px; }
 
 .roadmap-week-title {
   font-weight: 600;
-  color: #ff6b01;
+  color: #e2e8f0;
   margin-bottom: 0.5rem;
+  font-size: 1.4rem;
 }
 
 /* =========================
