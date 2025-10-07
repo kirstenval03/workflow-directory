@@ -176,9 +176,19 @@ export default function AIReportResults() {
 
             {p.workflow_recommendations?.map((w, j) => (
               <div key={j} className="workflow-block">
-                <h4 className="workflow-name">{w.workflow_name}</h4>
-                <p className="workflow-description">{w.workflow_description}</p>
+                
+              <h4 className="workflow-name">{w.workflow_name}</h4>
 
+            {/* Pillar + Subpillar subtitle */}
+            {(w.workflow_pillar || w.workflow_subpillar) && (
+              <p className="workflow-pillar-sub">
+                {w.workflow_pillar && <strong>{w.workflow_pillar}</strong>}
+                {w.workflow_subpillar && ` — ${w.workflow_subpillar}`}
+              </p>
+            )}
+
+            <p className="workflow-description">{w.workflow_description}</p>
+                            
                 <ul className="workflow-benefits">
                   {w.benefits?.slice(0, 2).map((b, idx) => (
                     <li key={`pos-${idx}`}>✅ {b}</li>
