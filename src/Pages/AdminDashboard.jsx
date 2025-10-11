@@ -20,16 +20,33 @@ export default function AdminDashboard() {
   }, []);
 
   // ────────────────────────────────────────────────
-  // FETCH JOBS
+  // FETCH JOBS + APPLICATION COUNTS
   const fetchJobs = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+
+      // Fetch jobs
+      const { data: jobsData, error: jobsError } = await supabase
         .from("jobs")
         .select("*")
         .order("posted_at", { ascending: false });
 
-      if (error) throw error;
-      setJobs(data || []);
+      if (jobsError) throw jobsError;
+
+      // Fetch all applications
+      const { data: appsData, error: appsError } = await supabase
+        .from("applications")
+        .select("id, job_id");
+
+      if (appsError) throw appsError;
+
+      // Count applications per job
+      const jobsWithCounts = jobsData.map((job) => {
+        const appCount = appsData.filter((app) => app.job_id === job.id).length;
+        return { ...job, applications: appCount };
+      });
+
+      setJobs(jobsWithCounts);
     } catch (err) {
       console.error("Error fetching jobs:", err.message);
     } finally {
@@ -109,13 +126,14 @@ export default function AdminDashboard() {
   // ────────────────────────────────────────────────
   // DERIVED STATS
   const activeJobs = jobs.filter((j) => j.status === "active");
-// 🕒 Only jobs closing in 48 hours or less
-const closingSoon = activeJobs.filter((j) => {
-  if (!j.closing_date) return false;
-  const diffHours =
-    (new Date(j.closing_date) - new Date()) / (1000 * 60 * 60);
-  return diffHours <= 48 && diffHours >= 0;
-});
+
+  // 🕒 Only jobs closing in 48 hours or less
+  const closingSoon = activeJobs.filter((j) => {
+    if (!j.closing_date) return false;
+    const diffHours =
+      (new Date(j.closing_date) - new Date()) / (1000 * 60 * 60);
+    return diffHours <= 48 && diffHours >= 0;
+  });
 
   // ────────────────────────────────────────────────
   // LOADING STATE
@@ -165,7 +183,7 @@ const closingSoon = activeJobs.filter((j) => {
                   preview: job.preview_description,
                   location: "Remote",
                   closing_in: getDaysUntil(job.closing_date),
-                  applications: 0,
+                  applications: job.applications || 0,
                 }}
                 onEdit={() => setSelectedJob(job)}
                 onStatusToggle={handleStatusToggle}
