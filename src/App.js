@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WorkflowDirectory from './Pages/WorkflowDirectory.js';
 import AIReportForm from './Pages/AIReportForm.js';
 import AIReportResults from './Pages/AIReportResults';
+import AIWorkflowsTable from './Pages/aia-workflows-table.js';
 import JobBoard from './Pages/JobBoard.jsx';
+import Login from './Pages/Login.js';
 
 export default function App() {
   return (
@@ -12,7 +14,9 @@ export default function App() {
         <Route path="/" element={<WorkflowDirectory />} />
         <Route path="/AI-report" element={<AIReportForm />} />
         <Route path="/AI-report-results/:id" element={<AIReportResults />} />
+        <Route path="/aia-workflows-table" element={<AIWorkflowsTable />} />
         <Route path="/jobs" element={<JobBoard />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
   );
