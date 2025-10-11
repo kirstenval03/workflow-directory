@@ -6,6 +6,7 @@ import StatCard from "../Components/StatCard";
 import AdminJobCard from "../Components/AdminJobCard";
 import CreateJobModal from "../Components/CreateJobModal";
 import EditJobModal from "../Components/EditJobModal";
+import ViewApplicationsModal from "../Components/ViewApplicationsModal";
 
 export default function AdminDashboard() {
   const [jobs, setJobs] = useState([]);
@@ -13,6 +14,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [viewingJob, setViewingJob] = useState(null);
 
   useEffect(() => {
     fetchJobs();
@@ -187,6 +189,7 @@ export default function AdminDashboard() {
                 }}
                 onEdit={() => setSelectedJob(job)}
                 onStatusToggle={handleStatusToggle}
+                onViewApplications={() => setViewingJob(job)} // 👈 open modal
               />
             ))}
           </div>
@@ -206,6 +209,13 @@ export default function AdminDashboard() {
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
           onJobUpdated={fetchJobs}
+        />
+      )}
+
+      {viewingJob && (
+        <ViewApplicationsModal
+          job={viewingJob}
+          onClose={() => setViewingJob(null)}
         />
       )}
     </div>

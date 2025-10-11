@@ -1,4 +1,4 @@
-export default function AdminJobCard({ job, onEdit, onStatusToggle }) {
+export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplications }) {
   const isClosed = job.status === "closed";
 
   const statusColor =
@@ -48,23 +48,26 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle }) {
           </button>
 
           {/* VIEW APPLICATIONS */}
-          <button className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition">
+          <button
+            onClick={() => onViewApplications(job)}
+            className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition"
+          >
             View Applications
           </button>
 
           {/* EXPORT CSV */}
-          <button className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition">
+          <button
+            className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition"
+            onClick={() => alert(`Exporting CSV for "${job.title}" (coming soon)`)}
+          >
             Export CSV
           </button>
 
           {/* CLOSE / REOPEN */}
           <button
             onClick={() => onStatusToggle(job)}
-            className={`px-4 py-1.5 rounded font-semibold text-sm shadow-md transition ${
-              isClosed
-                ? "bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white hover:opacity-90"
-                : "bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white hover:opacity-90"
-            }`}
+            className={`px-4 py-1.5 rounded font-semibold text-sm shadow-md transition 
+              bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white hover:opacity-90`}
           >
             {isClosed ? "Reopen Job" : "Close Early"}
           </button>
@@ -73,7 +76,7 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle }) {
 
       {/* Right side: application count */}
       <p className="text-sm text-gray-500 whitespace-nowrap">
-        {job.applications} applications
+        {job.applications} application{job.applications !== 1 && "s"}
       </p>
     </div>
   );
