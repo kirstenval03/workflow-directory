@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// Public Pages
 import WorkflowDirectory from './Pages/WorkflowDirectory.js';
 import AIReportForm from './Pages/AIReportForm.js';
 import AIReportResults from './Pages/AIReportResults';
@@ -7,16 +9,33 @@ import AIWorkflowsTable from './Pages/aia-workflows-table.js';
 import JobBoard from './Pages/JobBoard.jsx';
 import Login from './Pages/Login.js';
 
+// Admin Pages
+import AdminDashboard from './Pages/AdminDashboard.jsx';
+import ProtectedRoute from './Components/ProtectedRoute.jsx';
+
 export default function App() {
   return (
     <Router>
       <Routes>
+
+        {/* Public Routes */}
         <Route path="/" element={<WorkflowDirectory />} />
         <Route path="/AI-report" element={<AIReportForm />} />
         <Route path="/AI-report-results/:id" element={<AIReportResults />} />
         <Route path="/aia-workflows-table" element={<AIWorkflowsTable />} />
         <Route path="/jobs" element={<JobBoard />} />
         <Route path="/login" element={<Login />} />
+
+        {/* Admin Routes (Protected by Supabase Auth) */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </Router>
   );
