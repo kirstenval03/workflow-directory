@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from "react-hot-toast";
 
 // Public Pages
 import WorkflowDirectory from './Pages/WorkflowDirectory.js';
@@ -37,6 +38,8 @@ export default function App() {
         />
 
       </Routes>
+        <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+
     </Router>
   );
 }

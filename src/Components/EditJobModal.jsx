@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
+import toast from "react-hot-toast";
 
 export default function EditJobModal({ job, onClose, onJobUpdated }) {
   const [title, setTitle] = useState("");
@@ -8,18 +9,15 @@ export default function EditJobModal({ job, onClose, onJobUpdated }) {
   const [hourlyPayRange, setHourlyPayRange] = useState("");
   const [closingDate, setClosingDate] = useState("");
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
-  // 🧩 Prefill the form with current job data
+  // 🧩 Prefill form with current job data
   useEffect(() => {
     if (job) {
       setTitle(job.title || "");
       setPreviewDescription(job.preview_description || "");
       setDetailedDescription(job.detailed_description || "");
       setHourlyPayRange(job.hourly_pay_range || "");
-      setClosingDate(
-        job.closing_date ? job.closing_date.split("T")[0] : ""
-      );
+      setClosingDate(job.closing_date ? job.closing_date.split("T")[0] : "");
     }
   }, [job]);
 
@@ -42,11 +40,14 @@ export default function EditJobModal({ job, onClose, onJobUpdated }) {
 
       if (error) throw error;
 
-      setSuccessMessage("✅ Job updated successfully!");
-      await onJobUpdated();
+      // ✅ Success toast
+      toast.success("Job updated successfully!");
+
+      await onJobUpdated(); // refetch jobs
       setTimeout(() => onClose(), 800);
     } catch (err) {
-      alert("Error updating job: " + err.message);
+      console.error("Error updating job:", err.message);
+      toast.error("❌ Error updating job");
     } finally {
       setLoading(false);
     }
@@ -109,18 +110,13 @@ export default function EditJobModal({ job, onClose, onJobUpdated }) {
               {loading ? "Saving..." : "Save Changes"}
             </button>
           </div>
-
-          {/* Success message */}
-          {successMessage && (
-            <p className="text-green-600 text-sm mt-3">{successMessage}</p>
-          )}
         </form>
       </div>
     </div>
   );
 }
 
-// Small reusable components
+// 🔹 Reusable components for cleaner code
 function Input({ label, type, value, setValue, placeholder }) {
   return (
     <div>

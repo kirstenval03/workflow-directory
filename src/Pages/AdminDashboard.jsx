@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import toast from "react-hot-toast";
 import AdminNavbar from "../Components/AdminNavbar";
 import StatCard from "../Components/StatCard";
 import AdminJobCard from "../Components/AdminJobCard";
@@ -13,13 +14,13 @@ export default function AdminDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
 
-  // ────────────────────────────────────────────────
-  // FETCH JOBS + APPLICATIONS
   useEffect(() => {
     fetchJobs();
     fetchApplicationsCount();
   }, []);
 
+  // ────────────────────────────────────────────────
+  // FETCH JOBS
   const fetchJobs = async () => {
     try {
       const { data, error } = await supabase
@@ -36,6 +37,8 @@ export default function AdminDashboard() {
     }
   };
 
+  // ────────────────────────────────────────────────
+  // FETCH TOTAL APPLICATIONS
   const fetchApplicationsCount = async () => {
     try {
       const { count, error } = await supabase
@@ -45,6 +48,61 @@ export default function AdminDashboard() {
       setApplicationsCount(count || 0);
     } catch (err) {
       console.error("Error fetching applications count:", err.message);
+    }
+  };
+
+  // ────────────────────────────────────────────────
+  // ⚡ TOGGLE JOB STATUS FUNCTION (close or reopen)
+  const handleStatusToggle = async (job) => {
+    const isClosed = job.status === "closed";
+
+    const confirm = window.confirm(
+      isClosed
+        ? `Reopen "${job.title}" for 3 more days?`
+        : `Are you sure you want to close "${job.title}" early?`
+    );
+    if (!confirm) return;
+
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      let updateData;
+
+      if (isClosed) {
+        // 🟢 Reopen the job for 3 days
+        const newClosingDate = new Date();
+        newClosingDate.setDate(newClosingDate.getDate() + 3);
+
+        updateData = {
+          status: "active",
+          closing_date: newClosingDate.toISOString().split("T")[0],
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        // 🔴 Close the job early
+        updateData = {
+          status: "closed",
+          closing_date: today,
+          updated_at: new Date().toISOString(),
+        };
+      }
+
+      const { error } = await supabase
+        .from("jobs")
+        .update(updateData)
+        .eq("id", job.id);
+
+      if (error) throw error;
+
+      toast.success(
+        isClosed
+          ? `✅ "${job.title}" reopened for 3 more days!`
+          : `✅ "${job.title}" closed successfully!`
+      );
+
+      await fetchJobs();
+    } catch (err) {
+      console.error("Error toggling job status:", err.message);
+      toast.error("❌ Failed to update job status");
     }
   };
 
@@ -74,14 +132,14 @@ export default function AdminDashboard() {
       <AdminNavbar />
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* ─── Top Stats Row ─── */}
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <StatCard title="Active Jobs" value={activeJobs.length} />
           <StatCard title="Total Applications" value={applicationsCount} />
           <StatCard title="Closing Soon" value={closingSoon.length} />
         </div>
 
-        {/* ─── Header + Create Button ─── */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Job Positions</h2>
           <button
@@ -92,7 +150,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* ─── Job Cards ─── */}
+        {/* Job List */}
         {jobs.length === 0 ? (
           <p className="text-gray-500 text-sm">No jobs found.</p>
         ) : (
@@ -101,21 +159,22 @@ export default function AdminDashboard() {
               <AdminJobCard
                 key={job.id}
                 job={{
-                  ...job, // Pass all Supabase fields directly
+                  ...job,
                   pay: job.hourly_pay_range,
                   preview: job.preview_description,
                   location: "Remote",
                   closing_in: getDaysUntil(job.closing_date),
                   applications: 0,
                 }}
-                onEdit={() => setSelectedJob(job)} // Pass full job to modal
+                onEdit={() => setSelectedJob(job)}
+                onStatusToggle={handleStatusToggle}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* ─── Modals ─── */}
+      {/* Modals */}
       {showCreateModal && (
         <CreateJobModal
           onClose={() => setShowCreateModal(false)}
@@ -134,7 +193,8 @@ export default function AdminDashboard() {
   );
 }
 
-// Helper: calculate "Closes in X days"
+// ────────────────────────────────────────────────
+// HELPER FUNCTION
 function getDaysUntil(dateStr) {
   if (!dateStr) return "N/A";
   const now = new Date();

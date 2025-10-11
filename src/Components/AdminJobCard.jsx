@@ -1,4 +1,6 @@
-export default function AdminJobCard({ job, onEdit }) {
+export default function AdminJobCard({ job, onEdit, onStatusToggle }) {
+  const isClosed = job.status === "closed";
+
   const statusColor =
     job.status === "active"
       ? "bg-blue-100 text-blue-700"
@@ -16,7 +18,7 @@ export default function AdminJobCard({ job, onEdit }) {
         </div>
 
         <p className="text-sm text-gray-500 mb-1">
-          {job.pay} • {job.location} • Closes in {job.closing_in}
+         Pay Range {job.pay}  •  Closes in {job.closing_in}
         </p>
 
         <p className="text-gray-600 text-sm mb-3">{job.preview}</p>
@@ -25,24 +27,31 @@ export default function AdminJobCard({ job, onEdit }) {
           {/* EDIT */}
           <button
             onClick={() => onEdit(job)}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm transition"
+            className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition"
           >
             Edit
           </button>
 
           {/* VIEW APPLICATIONS */}
-          <button className="px-3 py-1.5 bg-gray-100 rounded hover:bg-gray-200 text-sm">
+          <button className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition">
             View Applications
           </button>
 
           {/* EXPORT CSV */}
-          <button className="px-3 py-1.5 bg-gray-100 rounded hover:bg-gray-200 text-sm">
+          <button className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition">
             Export CSV
           </button>
 
-          {/* CLOSE EARLY */}
-          <button className="px-3 py-1.5 bg-gray-100 rounded hover:bg-gray-200 text-sm">
-            Close Early
+          {/* CLOSE / REOPEN */}
+          <button
+            onClick={() => onStatusToggle(job)}
+            className={`px-4 py-1.5 rounded font-semibold text-sm shadow-md transition ${
+              isClosed
+                ? "bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white hover:opacity-90"
+                : "bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white hover:opacity-90"
+            }`}
+          >
+            {isClosed ? "Reopen Job" : "Close Early"}
           </button>
         </div>
       </div>
