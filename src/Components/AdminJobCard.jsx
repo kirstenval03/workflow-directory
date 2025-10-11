@@ -6,19 +6,34 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle }) {
       ? "bg-blue-100 text-blue-700"
       : "bg-gray-200 text-gray-600";
 
+  // 🔹 Detect if the job is closing soon (<= 2 days)
+  const isClosingSoon =
+    typeof job.closing_in === "string"
+      ? job.closing_in.includes("day") && parseInt(job.closing_in) <= 2
+      : false;
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex justify-between items-start">
       {/* Left side: job info */}
       <div>
         <div className="flex items-center space-x-2 mb-1">
           <h3 className="font-semibold text-gray-800">{job.title}</h3>
+
+          {/* Status pill */}
           <span className={`text-xs px-2 py-1 rounded-full ${statusColor}`}>
             {job.status}
           </span>
+
+          {/* 🕒 Closing Soon pill */}
+          {job.status === "active" && isClosingSoon && (
+            <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium">
+              Closing Soon
+            </span>
+          )}
         </div>
 
         <p className="text-sm text-gray-500 mb-1">
-         Pay Range {job.pay}  •  Closes in {job.closing_in}
+          Pay Range {job.pay} • Closes in {job.closing_in}
         </p>
 
         <p className="text-gray-600 text-sm mb-3">{job.preview}</p>

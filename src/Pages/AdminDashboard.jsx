@@ -109,12 +109,13 @@ export default function AdminDashboard() {
   // ────────────────────────────────────────────────
   // DERIVED STATS
   const activeJobs = jobs.filter((j) => j.status === "active");
-  const closingSoon = activeJobs.filter((j) => {
-    if (!j.closing_date) return false;
-    const diffDays =
-      (new Date(j.closing_date) - new Date()) / (1000 * 60 * 60 * 24);
-    return diffDays <= 7 && diffDays >= 0;
-  });
+// 🕒 Only jobs closing in 48 hours or less
+const closingSoon = activeJobs.filter((j) => {
+  if (!j.closing_date) return false;
+  const diffHours =
+    (new Date(j.closing_date) - new Date()) / (1000 * 60 * 60);
+  return diffHours <= 48 && diffHours >= 0;
+});
 
   // ────────────────────────────────────────────────
   // LOADING STATE
