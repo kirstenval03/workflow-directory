@@ -12,6 +12,7 @@ import Login from './Pages/Login.js';
 
 // Admin Pages
 import AdminDashboard from './Pages/AdminDashboard.jsx';
+import AdminApplications from './Pages/AdminApplications.jsx'; // 👈 import this
 import ProtectedRoute from './Components/ProtectedRoute.jsx';
 
 export default function App() {
@@ -37,9 +38,19 @@ export default function App() {
           }
         />
 
-      </Routes>
-        <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+        {/* 👇 New Applications Route */}
+        <Route
+          path="/admin/applications"
+          element={
+            <ProtectedRoute>
+              <AdminApplications />
+            </ProtectedRoute>
+          }
+        />
 
+      </Routes>
+
+      <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
     </Router>
   );
 }

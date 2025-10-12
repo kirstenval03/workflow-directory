@@ -55,14 +55,6 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplic
             View Applications
           </button>
 
-          {/* EXPORT CSV */}
-          <button
-            className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition"
-            onClick={() => alert(`Exporting CSV for "${job.title}" (coming soon)`)}
-          >
-            Export CSV
-          </button>
-
           {/* CLOSE / REOPEN */}
           <button
             onClick={() => onStatusToggle(job)}
