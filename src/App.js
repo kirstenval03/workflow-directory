@@ -14,6 +14,7 @@ import Login from './Pages/Login.js';
 import AdminDashboard from './Pages/AdminDashboard.jsx';
 import AdminApplications from './Pages/AdminApplications.jsx'; // 👈 import this
 import ProtectedRoute from './Components/ProtectedRoute.jsx';
+import AdminCandidates from "./Pages/AdminCandidates.jsx";
 
 export default function App() {
   return (
@@ -44,6 +45,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminApplications />
+            </ProtectedRoute>
+          }
+        />
+
+        
+        <Route
+          path="/admin/candidates"
+          element={
+            <ProtectedRoute>
+              <AdminCandidates />
             </ProtectedRoute>
           }
         />
