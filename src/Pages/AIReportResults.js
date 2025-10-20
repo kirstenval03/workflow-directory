@@ -361,11 +361,24 @@ export default function AIReportResults() {
               {w.workflow_description}
             </p>
 
-            <ul className="mt-2 list-disc list-inside text-slate-200 text-sm">
-              {(w.benefits || []).map((b, idx) => (
-                <li key={idx}>{b}</li>
-              ))}
-            </ul>
+          <ul className="mt-2 text-slate-200 text-sm space-y-1">
+  {w.benefits?.map((b, idx) => (
+    <li key={idx} className="flex items-start gap-2">
+<span
+  className={`inline-flex items-center justify-center w-5 h-5 rounded ${
+    idx % 2 === 0
+      ? "bg-green-500/20 text-green-400"
+      : "bg-red-500/20 text-red-400"
+  } text-[12px] leading-none flex-shrink-0`}
+>
+  {idx % 2 === 0 ? "✓" : "✕"}
+</span>
+
+      <span>{b}</span>
+    </li>
+  ))}
+</ul>
+
 
             {w.roi_projection && (
               <div className="mt-3 text-sm text-slate-200 space-y-1">
@@ -476,7 +489,7 @@ export default function AIReportResults() {
             $5,000
           </p>
           <p className="text-sm mt-2 text-slate-200">
-            With ongoing support at only <strong>$10–15/hr</strong>.
+            Have a fully trained AI Architech in your business for  <strong>$10+/hour</strong>.
           </p>
         </div>
       )}
@@ -500,7 +513,7 @@ export default function AIReportResults() {
   </h2>
 
   <p className="text-slate-300 max-w-2xl mx-auto">
-    Replace your AI-Architech for any reason within 90 days — no extra cost.
+   Replace your Architech for ANY reason in the first 90 days. If someone sticks for 90 days, generally they’ll stick for as long as you want them on team. 
   </p>
 </section>
 
