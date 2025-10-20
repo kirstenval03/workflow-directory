@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { FileUser } from "lucide-react";
 
+
 export default function AIReportForm() {
   const navigate = useNavigate();
 
