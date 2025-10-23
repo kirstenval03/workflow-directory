@@ -144,7 +144,13 @@ export default function AIReportResults() {
     });
   });
 
-  const sortedOpportunities = [...(opportunities || [])].sort((a, b) => {
+  
+// remove any opportunities that have no workflow recommendations
+const filteredOpportunities = (opportunities || []).filter(
+  (opp) => opp.workflow_recommendations && opp.workflow_recommendations.length > 0
+);
+
+const sortedOpportunities = [...filteredOpportunities].sort((a, b) => {
     const aSub =
       a.workflow_recommendations?.[0]?.workflow_subpillar?.toLowerCase().trim() ||
       "";
@@ -422,13 +428,13 @@ export default function AIReportResults() {
                           : "—"}
                       </p>
                       <p>
-                        ⚙️ <strong>Timeline:</strong>{" "}
+                        ⚙️ <strong>Time to Build:</strong>{" "}
                         {w.roi_projection.timeline_days
                           ? `${w.roi_projection.timeline_days} days`
                           : "—"}
                       </p>
                       <p>
-                        💸 <strong>Agency Equivalent:</strong>{" "}
+                        💸 <strong>Agency Estimate:</strong>{" "}
                         {w.roi_projection.agency_equivalent_cost || "—"}
                       </p>
                       {w.roi_projection.risk_of_inaction && (
@@ -553,74 +559,76 @@ export default function AIReportResults() {
         </p>
       </section>
 
-      {/* NEXT STEPS */}
-      <section className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-10 mb-10 shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-          {/* Left Column — Title & Description */}
-          <div>
-            <h2 className="text-2xl font-semibold text-brand mb-6">
-              Next Steps
-            </h2>
-            <p className="text-slate-300 max-w-md leading-relaxed">
-              A quick, guided path to get your in-house AI Architech placed and
-              building inside your business.
-            </p>
-          </div>
+{/* NEXT STEPS (Two-column grid with subheadline layout) */}
+<section className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-10 mb-10 shadow-lg">
+  <h2 className="text-3xl font-semibold text-white mb-4 text-center tracking-tight">
+    Next Steps
+  </h2>
+  <p className="text-slate-300 text-center max-w-2xl mx-auto mb-10 leading-relaxed">
+    A quick, guided path to get your in-house AI Architech placed and building inside your business.
+  </p>
 
-          {/* Right Column — Steps */}
-          <div className="flex flex-col gap-4">
-            {[
-              {
-                number: "01",
-                title: "Complete Your Enrollment",
-                description:
-                  "Secure your spot and begin your AI Architech placement.",
-              },
-              {
-                number: "02",
-                title: "Sign Your Agreement",
-                description:
-                  "You’ll automatically receive your service agreement right after enrollment.",
-              },
-              {
-                number: "03",
-                title: "Meet Your Recruiting Concierge (Within 24 Hours)",
-                description:
-                  "We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.",
-              },
-              {
-                number: "04",
-                title: "AI Implementation Call (Within 3 Days)",
-                description:
-                  "Our team will walk you through your custom AI Workflow Blueprint and launch plan.",
-              },
-              {
-                number: "05",
-                title: "Interview Top Candidates (Within 7 Days)",
-                description:
-                  "You’ll meet three hand-selected AI-Architechs vetted for your business needs.",
-              },
-            ].map((step, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition"
-              >
-                <div className="flex items-center justify-center min-w-[48px] min-h-[48px] rounded-full bg-gradient-to-tr from-[#36d1ff] to-[#ff6b01] text-white font-semibold text-lg shadow-md shrink-0">
-                  {step.number}
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-white text-base mb-1">
-                    {step.title}
-                  </h3>
-                  <p className="text-slate-400 text-sm leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+  <div className="grid sm:grid-cols-2 gap-6">
+    {[
+      {
+        number: "01",
+        title: "Complete Your Enrollment",
+        sub: "",
+        description: "Secure your spot and begin your AI Architech placement.",
+      },
+      {
+        number: "02",
+        title: "Sign Your Agreement",
+        sub: "",
+        description: "You’ll automatically receive your service agreement right after enrollment.",
+      },
+      {
+        number: "03",
+        title: "Meet Your Recruiting Concierge",
+        sub: "(Within 24 Hours)",
+        description: "We’ll schedule a 1:1 onboarding call to clarify your goals and ideal candidate profile.",
+      },
+      {
+        number: "04",
+        title: "AI Implementation Call",
+        sub: "(Within 3 Days)",
+        description: "Our team will walk you through your custom AI Workflow Blueprint and launch plan.",
+      },
+      {
+        number: "05",
+        title: "Interview Top Candidates",
+        sub: "(Within 7 Days)",
+        description: "You’ll meet three hand-selected AI-Architechs vetted for your business needs.",
+      },
+    ].map((step, idx) => (
+      <div
+        key={idx}
+        className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition"
+      >
+        {/* Step number */}
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-[#36d1ff] to-[#ff6b01] text-white font-semibold text-lg shadow-md shrink-0">
+          {step.number}
         </div>
-      </section>
+
+        {/* Step content */}
+        <div>
+          <h3 className="font-semibold text-white text-base leading-tight">
+            {step.title}
+          </h3>
+          {step.sub && (
+            <p className="text-sm text-[#36d1ff] font-medium mb-1">
+              {step.sub}
+            </p>
+          )}
+          <p className="text-slate-400 text-sm leading-relaxed">
+            {step.description}
+          </p>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
+
 
 {/* RISK REVERSAL (Enhanced layout – "Without" first) */}
 <section className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-10 shadow-lg">
