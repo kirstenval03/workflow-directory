@@ -218,21 +218,22 @@ const sortedOpportunities = [...filteredOpportunities].sort((a, b) => {
           Biggest Levers — Where AI Can Create the Biggest Impact
         </h2>
 
-        {efficiencyLike?.length > 0 ? (
-          <div className="space-y-10">
-            {efficiencyLike.map((pillarObj, index) => {
-              const pillarData = Object.entries(pillarObj.subpillars || {}).map(
-                ([sub, score]) => ({
-                  name: sub.replace(/_/g, " "),
-                  score,
-                  color:
-                    score <= 30
-                      ? "#ef4444"
-                      : score <= 70
-                      ? "#facc15"
-                      : "#22c55e",
-                })
-              );
+{efficiencyLike?.length > 0 ? (
+  <div className="space-y-10">
+    {efficiencyLike.map((pillarObj, index) => {
+      const pillarData = Object.entries(pillarObj.subpillars || {}).map(
+        ([sub, score]) => ({
+          name: sub.replace(/_/g, " "),
+          score,
+          color:
+            score <= 30
+              ? "#ef4444" // 🔴 red (critical)
+              : score <= 65
+              ? "#facc15" // 🟡 yellow (moderate)
+              : "#22c55e", // 🟢 green (healthy)
+        })
+      );
+
 
               return (
                 <div key={index}>
