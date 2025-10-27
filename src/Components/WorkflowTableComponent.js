@@ -58,6 +58,7 @@ export default function WorkflowTableComponent({ workflows = [] }) {
         ? v.split(',').map(s => s.trim()).filter(Boolean)
         : [];
 
+  // 🎨 Base color maps for known exact matches
   const FN_COLOR = {
     Admin: 'pill-slate',
     Marketing: 'pill-pink',
@@ -67,6 +68,7 @@ export default function WorkflowTableComponent({ workflows = [] }) {
     Finance: 'pill-lime',
     Operations: 'pill-slate',
   };
+
   const IND_COLOR = {
     SaaS: 'pill-purple',
     'Online Service or Education': 'pill-teal',
@@ -75,7 +77,25 @@ export default function WorkflowTableComponent({ workflows = [] }) {
     Ecommerce: 'pill-rose',
     Other: 'pill-gray',
   };
-  const colorFor = (label, map) => map[label] || 'pill-gray';
+
+  // 🌈 Extended logic for new/compound labels
+  const getPillColor = (text) => {
+    if (!text) return 'pill-gray';
+    const lower = text.toLowerCase();
+
+    if (lower.includes('lead generation')) return 'pill-rose';
+    if (lower.includes('lead nurture')) return 'pill-amber';
+    if (lower.includes('analytics')) return 'pill-cyan';
+    if (lower.includes('content')) return 'pill-purple';
+    if (lower.includes('operations')) return 'pill-emerald';
+    if (lower.includes('sales')) return 'pill-sky';
+    if (lower.includes('automation')) return 'pill-indigo';
+    if (lower.includes('marketing')) return 'pill-pink';
+    if (lower.includes('ai')) return 'pill-lime';
+    return 'pill-gray';
+  };
+
+  const colorFor = (label, map) => map[label] || getPillColor(label);
 
   // refs for top/bottom scroll containers and the top inner width shim
   const topRef = useRef(null);
@@ -98,7 +118,7 @@ export default function WorkflowTableComponent({ workflows = [] }) {
           <thead>
             <tr>
               <th>Workflow Name</th>
-              <th>Google Drive Link</th>
+              <th>Link</th>
               <th>Executive Summary</th>
               <th>Business Functions</th>
               <th>Industry Relevance</th>
