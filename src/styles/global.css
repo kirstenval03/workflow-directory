@@ -250,25 +250,16 @@ p  { margin: 0 0 12px; }
   margin-top: 20px;
 }
 
-/* ------------------------------------------------------------
-   table scroll
------------------------------------------------------------- */
-
-.table-scroll-top {
-  overflow-x: auto;
-  overflow-y: hidden;
-  margin-bottom: 6px;
+/* Tailwind-consistent custom scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
 }
-
-.table-scroll-top::-webkit-scrollbar,
-.table-wrap::-webkit-scrollbar {
-  height: 10px;
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148,163,184,0.4);
+  border-radius: 10px;
 }
-
-.table-scroll-top::-webkit-scrollbar-thumb,
-.table-wrap::-webkit-scrollbar-thumb {
-  background: rgba(148,163,184,.4);
-  border-radius: 8px;
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(148,163,184,0.6);
 }
 
 /* ------------------------------------------------------------

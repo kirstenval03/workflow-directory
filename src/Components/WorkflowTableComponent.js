@@ -105,64 +105,117 @@ export default function WorkflowTableComponent({ workflows = [] }) {
   // activate syncing
   useSyncedHorizontalScroll(topRef, bottomRef, topInnerRef);
 
-  return (
-    <div className="table-section">
-      {/* Top scrollbar (width is set dynamically) */}
-      <div className="table-scroll-top" ref={topRef}>
-        <div ref={topInnerRef} style={{ height: 1 }} />
-      </div>
-
-      {/* Main table + bottom scrollbar */}
-      <div className="table-wrap" ref={bottomRef}>
-        <table className="table-wide">
-          <thead>
-            <tr>
-              <th>Workflow Name</th>
-              <th>Link</th>
-              <th>Executive Summary</th>
-              <th>Business Functions</th>
-              <th>Industry Relevance</th>
-              <th>Primary Objective</th>
-              <th>Business Results</th>
-              <th>Use Cases</th>
-              <th>Step-by-Step</th>
-              <th>Integrations</th>
-              <th>Core AI Capabilities</th>
-              <th>Notification Channels</th>
-            </tr>
-          </thead>
-          <tbody>
-            {workflows.map((w) => (
-              <tr key={w.id}>
-                <td>{w.workflow_name}</td>
-                <td>{w.drive_link && <a href={w.drive_link} target="_blank" rel="noreferrer">View</a>}</td>
-                <td>{w.executive_summary}</td>
-                <td>
-                  <div className="pill-row">
-                    {toArr(w.business_functions).map((tag, i) => (
-                      <span key={i} className={`pill ${colorFor(tag, FN_COLOR)}`}>{tag}</span>
-                    ))}
-                  </div>
-                </td>
-                <td>
-                  <div className="pill-row">
-                    {toArr(w.industry_relevance).map((tag, i) => (
-                      <span key={i} className={`pill ${colorFor(tag, IND_COLOR)}`}>{tag}</span>
-                    ))}
-                  </div>
-                </td>
-                <td>{w.primary_objective}</td>
-                <td>{w.business_results}</td>
-                <td>{w.business_use_cases}</td>
-                <td><CollapsibleText text={w.step_by_step} previewChars={220} /></td>
-                <td>{w.integrations_used}</td>
-                <td>{w.core_ai_capabilities}</td>
-                <td>{w.notification_channels}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+ return (
+  <div className="w-full mx-auto px-4 pb-20">
+    {/* Top scrollbar */}
+    <div
+      ref={topRef}
+      className="overflow-x-auto h-2 mb-3 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent rounded-lg"
+    >
+      <div ref={topInnerRef} className="h-1" />
     </div>
-  );
+
+    {/* Table (no vertical scroll — full visible height) */}
+    <div
+      ref={bottomRef}
+      className="overflow-x-auto border border-white/10 rounded-xl bg-white/5 backdrop-blur-md shadow-md scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent"
+    >
+      <table className="min-w-full text-left text-[13px] text-slate-200 border-collapse">
+        <thead>
+          <tr className="bg-white/10 text-slate-300 text-xs uppercase tracking-wider">
+            {[
+              'Workflow Name',
+              'Link',
+              'Executive Summary',
+              'Business Functions',
+              'Industry Relevance',
+              'Primary Objective',
+              'Business Results',
+              'Use Cases',
+              'Step-by-Step',
+              'Integrations',
+              'Core AI Capabilities',
+              'Notification Channels'
+            ].map((h) => (
+              <th
+                key={h}
+                className="px-3 py-3 font-semibold whitespace-nowrap bg-white/10 backdrop-blur-sm"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-white/10">
+          {workflows.map((w) => (
+            <tr
+              key={w.id}
+              className="hover:bg-white/5 transition-colors border-b border-white/5"
+            >
+              <td className="px-3 py-3 font-medium text-slate-100 w-[200px]">
+                {w.workflow_name}
+              </td>
+              <td className="px-3 py-3 text-blue-400 hover:underline w-[70px]">
+                {w.drive_link && (
+                  <a href={w.drive_link} target="_blank" rel="noreferrer">
+                    View
+                  </a>
+                )}
+              </td>
+              <td className="px-3 py-3 max-w-[260px] text-slate-300">
+                <p className="line-clamp-3">{w.executive_summary}</p>
+              </td>
+
+              {/* Business Functions */}
+              <td className="px-3 py-3 w-[180px]">
+                <div className="flex flex-wrap gap-2">
+                  {toArr(w.business_functions).map((tag, i) => (
+                    <span key={i} className={`pill ${colorFor(tag, FN_COLOR)}`}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </td>
+
+              {/* Industry Relevance */}
+              <td className="px-3 py-3 w-[180px]">
+                <div className="flex flex-wrap gap-2">
+                  {toArr(w.industry_relevance).map((tag, i) => (
+                    <span key={i} className={`pill ${colorFor(tag, IND_COLOR)}`}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </td>
+
+              <td className="px-3 py-3 max-w-[220px] text-slate-300">
+                {w.primary_objective}
+              </td>
+              <td className="px-3 py-3 max-w-[220px] text-slate-300">
+                {w.business_results}
+              </td>
+              <td className="px-3 py-3 max-w-[200px] text-slate-300">
+                {w.business_use_cases}
+              </td>
+              <td className="px-3 py-3 max-w-[220px] text-slate-300">
+                <CollapsibleText text={w.step_by_step} previewChars={200} />
+              </td>
+              <td className="px-3 py-3 text-slate-400 max-w-[180px]">
+                {w.integrations_used}
+              </td>
+              <td className="px-3 py-3 text-slate-400 max-w-[180px]">
+                {w.core_ai_capabilities}
+              </td>
+              <td className="px-3 py-3 text-slate-400 max-w-[180px]">
+                {w.notification_channels}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
 }
