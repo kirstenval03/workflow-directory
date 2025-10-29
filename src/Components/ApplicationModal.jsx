@@ -12,11 +12,28 @@ export default function ApplicationModal({ isOpen, onClose, job }) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const { error } = await supabase.from('applications').insert([
+  try {
+    // 1️⃣ Look up the qualified architech by email
+    const { data: architech, error: lookupError } = await supabase
+      .from('qualified_architechs')
+      .select('id, full_name')
+      .eq('email', email)
+      .single();
+
+    if (lookupError || !architech) {
+      setLoading(false);
+      alert(
+        'This email is not recognized. Please use the same email you used to apply to be an AI Architech, if you have questions please contact us at talents@aiarchitech.com'
+      );
+      return;
+    }
+
+    // 2️⃣ If found, insert the application with their ID
+    const { error: insertError } = await supabase.from('applications').insert([
       {
         job_id: job.id,
         email,
@@ -26,18 +43,21 @@ export default function ApplicationModal({ isOpen, onClose, job }) {
         supporting_links: supportingLinks,
         applied_at: new Date().toISOString(),
         status: 'new',
+        qualified_architech_id: architech.id, // ✅ new link field
       },
     ]);
 
-    setLoading(false);
+    if (insertError) throw insertError;
 
-    if (!error) {
-      setSubmitted(true);
-    } else {
-      console.error('Supabase insert error:', error);
-      alert('Error submitting application.');
-    }
-  };
+    // 3️⃣ Success state
+    setSubmitted(true);
+  } catch (err) {
+    console.error('Application error:', err);
+    alert('Error submitting your application. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!job) return null;
 

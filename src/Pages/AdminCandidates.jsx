@@ -3,74 +3,100 @@ import { supabase } from "../supabaseClient";
 import AdminNavbar from "../Components/AdminNavbar";
 import { Dialog } from "@headlessui/react";
 import { FiEye } from "react-icons/fi";
+import ArchitechDetailsModal from "../Components/ArchitechDetailsModal";
 
 export default function AdminCandidates() {
   const [candidates, setCandidates] = useState([]);
-  const [applications, setApplications] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Modal states
+  // Filter + Sort controls
+  const [showOnlyApplied, setShowOnlyApplied] = useState(false);
+  const [sortByRecent, setSortByRecent] = useState(false);
+
+  // Applications modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modalCandidate, setModalCandidate] = useState(null);
   const [candidateApplications, setCandidateApplications] = useState([]);
   const [loadingModal, setLoadingModal] = useState(false);
 
+  // Details modal
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedArchitech, setSelectedArchitech] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
 
+  // ==========================
+  // FETCH ALL CANDIDATES + APPLICATIONS
+  // ==========================
   const fetchData = async () => {
-    // Fetch all applicants
-    const { data: applicantsData, error: applicantsError } = await supabase
-      .from("applicants")
-      .select("id, first_name, last_name, email");
+    setLoading(true);
 
-    // Fetch all applications
+    const { data: architechsData, error: archError } = await supabase
+      .from("qualified_architechs")
+      .select(
+        "id, full_name, email, current_location, availability, created_at, headshot_url"
+      );
+
     const { data: applicationsData, error: appsError } = await supabase
       .from("applications")
-      .select("id, email");
+      .select("id, qualified_architech_id, applied_at");
 
-    if (applicantsError || appsError) {
-      console.error(applicantsError || appsError);
+    if (archError || appsError) {
+      console.error(archError || appsError);
       setLoading(false);
       return;
     }
 
-    // Count applications per email
-    const appCount = applicationsData.reduce((acc, app) => {
-      acc[app.email] = (acc[app.email] || 0) + 1;
+    const appStats = applicationsData.reduce((acc, app) => {
+      const id = app.qualified_architech_id;
+      if (!id) return acc;
+      if (!acc[id]) acc[id] = { count: 0, lastApplied: null };
+      acc[id].count += 1;
+      const appliedDate = new Date(app.applied_at);
+      if (!acc[id].lastApplied || appliedDate > acc[id].lastApplied) {
+        acc[id].lastApplied = appliedDate;
+      }
       return acc;
     }, {});
 
-    // Merge applicant info
-    const merged = applicantsData.map((a) => ({
+    const merged = architechsData.map((a) => ({
       id: a.id,
-      name: `${a.first_name || ""} ${a.last_name || ""}`.trim(),
+      name: a.full_name,
       email: a.email,
-      applicationsCount: appCount[a.email] || 0,
+      location: a.current_location,
+      availability: a.availability,
+      created_at: a.created_at,
+      headshot_url: a.headshot_url,
+      applicationsCount: appStats[a.id]?.count || 0,
+      lastApplied: appStats[a.id]?.lastApplied || null,
     }));
 
     setCandidates(merged);
-    setApplications(applicationsData);
     setLoading(false);
   };
 
+  // ==========================
+  // APPLICATIONS MODAL
+  // ==========================
   const openModal = async (candidate) => {
     setModalCandidate(candidate);
     setModalOpen(true);
     setLoadingModal(true);
 
-    // Fetch that candidate's applications + job titles
     const { data, error } = await supabase
       .from("applications")
       .select(`
         id,
         applied_at,
         supporting_links,
-        jobs (title)
+        bid_rate,
+        jobs (title, status)
       `)
-      .eq("email", candidate.email)
+      .eq("qualified_architech_id", candidate.id)
       .order("applied_at", { ascending: false });
 
     if (error) console.error(error);
@@ -85,11 +111,67 @@ export default function AdminCandidates() {
     setModalCandidate(null);
   };
 
-  const filteredCandidates = candidates.filter((cand) =>
+ // ==========================
+// DETAILS MODAL (FETCH FULL PROFILE)
+// ==========================
+const openDetailsModal = async (candidate) => {
+  setDetailsOpen(true);
+  setLoadingDetails(true);
+
+  try {
+    const { data, error } = await supabase
+      .from("qualified_architechs")
+      .select(`
+        id,
+        full_name,
+        email,
+        current_location,
+        availability,
+        created_at,
+        headshot_url,
+        resume_link,
+        loom_video_link,
+        github_profile,
+        programming_languages,
+        database_technologies,
+        database_experience,
+        automation_platforms,
+        recruiter_notes
+      `)
+      .eq("id", candidate.id)
+      .single();
+
+    if (error) throw error;
+
+    setSelectedArchitech(data);
+  } catch (error) {
+    console.error("Error fetching architech details:", error.message);
+  } finally {
+    setLoadingDetails(false);
+  }
+};
+
+  // ==========================
+  // FILTERING + SORTING
+  // ==========================
+  let filteredCandidates = candidates.filter((cand) =>
     `${cand.name} ${cand.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  if (showOnlyApplied) {
+    filteredCandidates = filteredCandidates.filter(
+      (cand) => cand.applicationsCount > 0
+    );
+  }
+
+  if (sortByRecent) {
+    filteredCandidates = [...filteredCandidates].sort(
+      (a, b) => (b.lastApplied || 0) - (a.lastApplied || 0)
+    );
+  }
+
   const formatDate = (dateString) => {
+    if (!dateString) return "—";
     const date = new Date(dateString);
     return date.toLocaleDateString(undefined, {
       year: "numeric",
@@ -98,27 +180,55 @@ export default function AdminCandidates() {
     });
   };
 
+  // ==========================
+  // RENDER
+  // ==========================
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
 
       <div className="max-w-6xl mx-auto px-6 py-10">
         <h1 className="text-2xl font-semibold text-gray-800 mb-2">
-          Candidate History
+          Qualified AI-Architechs
         </h1>
         <p className="text-sm text-gray-500 mb-6">
-          All candidates who have applied to positions ({candidates.length} total)
+          View and manage all pre-vetted AI-Architechs ({candidates.length} total)
         </p>
 
-        {/* Search Bar */}
-        <div className="mb-6">
+        {/* 🔍 Search + Filter Controls */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <input
             type="text"
-            placeholder="Search candidates by name or email..."
+            placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full md:w-1/2 border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+
+          {/* 🔘 Filter & Sort Toggles */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowOnlyApplied((prev) => !prev)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all shadow-sm ${
+                showOnlyApplied
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {showOnlyApplied ? "✅ Showing Only Applied" : "🧩 Show Only Applied"}
+            </button>
+
+            <button
+              onClick={() => setSortByRecent((prev) => !prev)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all shadow-sm ${
+                sortByRecent
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {sortByRecent ? "🔄 Sorted by Latest" : "⏰ Sort by Latest"}
+            </button>
+          </div>
         </div>
 
         {/* Table */}
@@ -129,36 +239,81 @@ export default function AdminCandidates() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left font-medium text-gray-600">Name</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-600">Email</th>
-                  <th className="px-6 py-3 text-center font-medium text-gray-600">Applications</th>
-                  <th className="px-6 py-3 text-right font-medium text-gray-600">Action</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">
+                    Architech
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-center font-medium text-gray-600">
+                    Applications
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">
+                    Last Application Submitted
+                  </th>
+                  <th className="px-6 py-3 text-right font-medium text-gray-600">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredCandidates.map((cand) => (
                   <tr key={cand.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-gray-800 font-medium">{cand.name || "—"}</td>
+                    {/* Avatar + Name */}
+                    <td className="px-6 py-3 flex items-center gap-3 text-gray-800 font-medium">
+{cand.headshot_url ? (
+  <img
+    src={cand.headshot_url}
+    alt={cand.name}
+    onError={(e) => (e.target.src = "/placeholder-avatar.png")}
+    className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover border border-gray-200"
+  />
+) : (
+  <div
+    className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full 
+               bg-gradient-to-br from-blue-500 to-indigo-600 
+               flex items-center justify-center text-white text-xs font-semibold 
+               shrink-0"
+    style={{ aspectRatio: "1 / 1" }}
+  >
+    {cand.name?.[0]?.toUpperCase() || "?"}
+  </div>
+)}
+                      {cand.name || "—"}
+                    </td>
+
                     <td className="px-6 py-3 text-gray-600">{cand.email}</td>
                     <td className="px-6 py-3 text-center">
                       <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
                         {cand.applicationsCount}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-right">
+                    <td className="px-6 py-3 text-gray-600">
+                      {formatDate(cand.lastApplied)}
+                    </td>
+                    <td className="px-6 py-3 text-right flex gap-2 justify-end">
+                      {/* View Applications */}
                       <button
                         onClick={() => openModal(cand)}
-                        className="flex items-center justify-center ml-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium shadow-sm hover:opacity-90 transition-all"
+                        className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium shadow-sm hover:opacity-90 transition-all"
                       >
                         <FiEye className="mr-1" />
-                        View in Modal
+                        View Applications
+                      </button>
+
+                      {/* View Details */}
+                      <button
+                        onClick={() => openDetailsModal(cand)}
+                        className="flex items-center justify-center bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-200 transition-all"
+                      >
+                        View Details
                       </button>
                     </td>
                   </tr>
                 ))}
                 {filteredCandidates.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center py-6 text-gray-500">
+                    <td colSpan={5} className="text-center py-6 text-gray-500">
                       No candidates found.
                     </td>
                   </tr>
@@ -169,102 +324,90 @@ export default function AdminCandidates() {
         )}
       </div>
 
-     {/* =====================
-    MODAL
-====================== */}
-<Dialog open={modalOpen} onClose={closeModal} className="relative z-50">
-  <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
-  <div className="fixed inset-0 flex items-center justify-center p-4">
-    <Dialog.Panel className="bg-white max-w-2xl w-full rounded-2xl p-6 shadow-2xl">
-      <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
-        <Dialog.Title className="text-lg font-semibold text-gray-800">
-          Applications for <span className="text-blue-600">{modalCandidate?.name}</span>
-        </Dialog.Title>
-        <button
-          onClick={closeModal}
-          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-        >
-          &times;
-        </button>
-      </div>
-
-      {loadingModal ? (
-        <p>Loading applications...</p>
-      ) : candidateApplications.length === 0 ? (
-        <p className="text-gray-500 text-sm">No applications found for this candidate.</p>
-      ) : (
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-          {candidateApplications.map((app) => (
-            <div
-              key={app.id}
-              className="bg-gray-50 border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-all"
-            >
-              <div className="flex justify-between items-start mb-1">
-                <div>
-                  <h3 className="font-semibold text-gray-800 text-base">
-                    {app.jobs?.title || "Unknown Job"}
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Applied on{" "}
-                    <span className="font-medium text-gray-700">
-                      {new Date(app.applied_at).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>{" "}
-                    at{" "}
-                    {new Date(app.applied_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-
-                {/* Job status badge */}
-                {app.jobs?.status && (
-                  <span
-                    className={`px-2 py-0.5 rounded-md text-xs font-medium ${
-                      app.jobs.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {app.jobs.status}
-                  </span>
-                )}
-              </div>
-
-              {/* Notes / Resources */}
-              <div className="mt-3">
-                <p className="text-xs uppercase font-semibold text-gray-500 mb-1 tracking-wide">
-                  Candidate’s notes or attachments:
-                </p>
-                <div className="bg-white border border-gray-200 rounded-md p-3 text-sm text-gray-700">
-                  {app.supporting_links ? (
-                    <p>{app.supporting_links}</p>
-                  ) : (
-                    <p className="italic text-gray-400">No notes provided.</p>
-                  )}
-                </div>
-              </div>
+      {/* =====================
+          APPLICATIONS MODAL
+      ====================== */}
+      <Dialog open={modalOpen} onClose={closeModal} className="relative z-50">
+        <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="bg-white max-w-2xl w-full rounded-2xl p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+              <Dialog.Title className="text-lg font-semibold text-gray-800">
+                Applications for{" "}
+                <span className="text-blue-600">{modalCandidate?.name}</span>
+              </Dialog.Title>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                &times;
+              </button>
             </div>
-          ))}
+
+            {loadingModal ? (
+              <p>Loading applications...</p>
+            ) : candidateApplications.length === 0 ? (
+              <p className="text-gray-500 text-sm">
+                No applications found for this candidate.
+              </p>
+            ) : (
+              <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                {candidateApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <div>
+                        <h3 className="font-semibold text-gray-800 text-base">
+                          {app.jobs?.title || "Unknown Job"}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Applied on{" "}
+                          <span className="font-medium text-gray-700">
+                            {formatDate(app.applied_at)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <p className="text-xs uppercase font-semibold text-gray-500 mb-1 tracking-wide">
+                        Candidate’s notes or attachments:
+                      </p>
+                      <div className="bg-white border border-gray-200 rounded-md p-3 text-sm text-gray-700">
+                        {app.supporting_links ? (
+                          <p>{app.supporting_links}</p>
+                        ) : (
+                          <p className="italic text-gray-400">No notes provided.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={closeModal}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-1.5 rounded-lg font-medium shadow-sm hover:opacity-90 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </Dialog.Panel>
         </div>
-      )}
+      </Dialog>
 
-      <div className="mt-6 text-right">
-        <button
-          onClick={closeModal}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-1.5 rounded-lg font-medium shadow-sm hover:opacity-90 transition-all"
-        >
-          Close
-        </button>
-      </div>
-    </Dialog.Panel>
-  </div>
-</Dialog>
-
+      {/* =====================
+          DETAILS MODAL
+      ====================== */}
+      <ArchitechDetailsModal
+        isOpen={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        architech={selectedArchitech}
+      />
     </div>
   );
 }
