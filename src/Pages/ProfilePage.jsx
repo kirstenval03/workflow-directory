@@ -10,7 +10,7 @@ export default function ProfilePage() {
     async function fetchProfile() {
       const { data, error } = await supabase
         .from("qualified_architechs")
-        .select("full_name, headshot_url, ai_profile_copy, hourly_rate, country, video_url")
+        .select("full_name, headshot_url, ai_profile_copy, country")
         .eq("id", id)
         .single();
 
