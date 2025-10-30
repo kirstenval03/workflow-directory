@@ -12,9 +12,10 @@ import Login from './Pages/Login.js';
 
 // Admin Pages
 import AdminDashboard from './Pages/AdminDashboard.jsx';
-import AdminApplications from './Pages/AdminApplications.jsx'; // 👈 import this
+import AdminApplications from './Pages/AdminApplications.jsx';
 import ProtectedRoute from './Components/ProtectedRoute.jsx';
 import AdminCandidates from "./Pages/AdminCandidates.jsx";
+import ProfilePage from "./Pages/ProfilePage.jsx"; // ✅ imported
 
 export default function App() {
   return (
@@ -39,7 +40,6 @@ export default function App() {
           }
         />
 
-        {/* 👇 New Applications Route */}
         <Route
           path="/admin/applications"
           element={
@@ -49,12 +49,21 @@ export default function App() {
           }
         />
 
-        
         <Route
           path="/admin/candidates"
           element={
             <ProtectedRoute>
               <AdminCandidates />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ New route for internal AI Architect Profile */}
+        <Route
+          path="/admin/profile/:id"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

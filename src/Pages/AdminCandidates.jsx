@@ -122,21 +122,24 @@ const openDetailsModal = async (candidate) => {
     const { data, error } = await supabase
       .from("qualified_architechs")
       .select(`
-        id,
-        full_name,
-        email,
-        current_location,
-        availability,
-        created_at,
-        headshot_url,
-        resume_link,
-        loom_video_link,
-        github_profile,
-        programming_languages,
-        database_technologies,
-        database_experience,
-        automation_platforms,
-        recruiter_notes
+      id,
+      full_name,
+      email,
+      created_at,
+      headshot_url,
+      current_location,
+      availability,
+      programming_languages,
+      automation_platforms,
+      database_technologies,
+      database_experience,
+      resume,
+      interview_transcript,
+      recruiter_notes,
+      github_profile,
+      loom_video_link,
+      resume_link,
+      ai_profile_copy
       `)
       .eq("id", candidate.id)
       .single();

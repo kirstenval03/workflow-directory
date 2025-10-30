@@ -1,5 +1,5 @@
 import { Dialog } from "@headlessui/react";
-import { FiX, FiLink, FiUpload } from "react-icons/fi";
+import { FiX, FiLink, FiUpload, FiExternalLink } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 
@@ -7,13 +7,16 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(architech?.headshot_url || null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileGenerated, setProfileGenerated] = useState(
+    !!architech?.ai_profile_copy
+  );
 
   useEffect(() => {
-  if (architech?.headshot_url) {
-    setPhotoUrl(architech.headshot_url);
-  }
-}, [architech]);
- 
+    if (architech?.headshot_url) setPhotoUrl(architech.headshot_url);
+    setProfileGenerated(!!architech?.ai_profile_copy);
+  }, [architech]);
+
   if (!architech) return null;
 
   const formatDate = (dateString) => {
@@ -33,7 +36,6 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // ✅ Show local preview instantly
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
     setUploading(true);
@@ -41,7 +43,6 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
     try {
       const filePath = `${architech.id}/${Date.now()}-${file.name}`;
 
-      // 🗑️ Delete previous photo if it exists
       if (architech.headshot_url) {
         const parts = architech.headshot_url.split("/architech-headshots/");
         if (parts.length > 1) {
@@ -50,11 +51,9 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
         }
       }
 
-      // 📤 Upload new file
       const { error } = await supabase.storage
         .from("architech-headshots")
         .upload(filePath, file, { upsert: true });
-
       if (error) throw error;
 
       const { data: publicUrlData } = supabase.storage
@@ -63,7 +62,6 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
 
       const publicUrl = publicUrlData.publicUrl;
 
-      // ✅ Update DB
       await supabase
         .from("qualified_architechs")
         .update({ headshot_url: publicUrl })
@@ -77,6 +75,68 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
       alert("Something went wrong while uploading.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  // =======================
+  // Handle Generate AI Profile
+  // =======================
+  const handleGenerateProfile = async () => {
+    try {
+      setLoadingProfile(true);
+
+      const payload = {
+        architech_id: architech.id,
+        full_name: architech.full_name,
+        resume: architech.resume,
+        interview_transcript: architech.interview_transcript,
+        availability: architech.availability,
+        programming_languages: architech.programming_languages,
+        automation_platforms: architech.automation_platforms,
+        database_technologies: architech.database_technologies,
+      };
+
+      console.log("Sending payload to n8n:", payload);
+
+      const webhookUrl =
+        "https://aiarchitech.app.n8n.cloud/webhook/20edebe2-327c-4213-b247-1da4cc046ec7";
+
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Webhook call failed");
+
+      alert(
+        "✅ Data sent to n8n! The AI profile copy will be added to Supabase once generated."
+      );
+
+      // Optional polling
+      const start = Date.now();
+      const timeout = 60000; // 1 minute
+      while (Date.now() - start < timeout) {
+        const { data, error } = await supabase
+          .from("qualified_architechs")
+          .select("ai_profile_copy")
+          .eq("id", architech.id)
+          .single();
+
+        if (error) throw error;
+        if (data?.ai_profile_copy) {
+          setProfileGenerated(true);
+          alert("✅ AI profile successfully generated!");
+          break;
+        }
+
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    } catch (error) {
+      console.error("Error generating AI profile:", error);
+      alert("Something went wrong — check the console for details.");
+    } finally {
+      setLoadingProfile(false);
     }
   };
 
@@ -127,15 +187,12 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
 
           {/* Profile Header */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start sm:gap-6 mb-6">
-            {/* Avatar */}
             <div className="relative w-28 h-28 mb-3 sm:mb-0">
               <img
                 src={previewUrl || photoUrl || "/placeholder-avatar.png"}
                 alt="Profile"
                 className="w-28 h-28 rounded-full object-cover border border-gray-300"
               />
-
-              {/* Spinner overlay while uploading */}
               {uploading && (
                 <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-full">
                   <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -143,7 +200,6 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
               )}
             </div>
 
-            {/* Upload button + details */}
             <div className="text-center sm:text-left">
               <h2 className="text-lg font-semibold text-gray-900">
                 {architech.full_name || "Unnamed"}
@@ -170,16 +226,19 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
             </div>
           </div>
 
-          {/* Section 1 — General Info */}
+          {/* General Info */}
           <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
               General Info
             </h3>
-            <InfoRow label="Current Location" value={architech.current_location} />
+            <InfoRow
+              label="Current Location"
+              value={architech.current_location}
+            />
             <InfoRow label="Availability" value={architech.availability} />
           </div>
 
-          {/* Section 2 — Technical Profile */}
+          {/* Technical Profile */}
           <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
               Technical Profile
@@ -202,18 +261,21 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
             />
           </div>
 
-          {/* Section 3 — Links & Media */}
+          {/* Links & Media */}
           <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
               Links & Media
             </h3>
-            <LinkRow label="Resume" url={architech.resume_link || architech.resume} />
+            <LinkRow
+              label="Resume"
+              url={architech.resume_link || architech.resume}
+            />
             <LinkRow label="Loom Video" url={architech.loom_video_link} />
             <LinkRow label="GitHub Profile" url={architech.github_profile} />
           </div>
 
-          {/* Section 4 — Recruiter Notes */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+          {/* Recruiter Notes */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
               Recruiter Notes
             </h3>
@@ -226,11 +288,40 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
             )}
           </div>
 
+          {/* AI Profile Generation Button / Status */}
+          <div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            {!profileGenerated ? (
+              <button
+                onClick={handleGenerateProfile}
+                disabled={loadingProfile}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
+              >
+                {loadingProfile ? "Generating..." : "Generate Profile Copy"}
+              </button>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <p className="text-green-600 font-semibold text-sm">
+                  ✅ Profile Copy Generated
+                </p>
+                <a
+                  href={`/admin/profile/${architech.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  <FiExternalLink size={14} />
+                  Show AIA Profile
+                </a>
+
+              </div>
+            )}
+          </div>
+
           {/* Footer */}
-          <div className="mt-6 text-right">
+          <div className="mt-4 text-right">
             <button
               onClick={onClose}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:opacity-90 transition-all"
+              className="bg-gray-200 text-gray-800 px-5 py-2 rounded-lg font-medium hover:bg-gray-300 transition"
             >
               Close
             </button>
