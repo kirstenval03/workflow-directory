@@ -10,7 +10,7 @@ export default function ProfilePage() {
     async function fetchProfile() {
       const { data, error } = await supabase
         .from("qualified_architechs")
-        .select("full_name, headshot_url, ai_profile_copy, country")
+        .select("full_name, headshot_url, loom_video_link, ai_profile_copy")
         .eq("id", id)
         .single();
 
@@ -20,7 +20,7 @@ export default function ProfilePage() {
     fetchProfile();
   }, [id]);
 
-  if (!architech) return <div className="p-10 text-center text-gray-400">Loading profile...</div>;
+  if (!architech) return <div className="p-10 text-center text-[#36D1FF]">Loading profile...</div>;
 
   const copy = architech.ai_profile_copy || {};
 
@@ -28,7 +28,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#01014C] text-white flex justify-center py-10">
       <div className="w-full max-w-6xl bg-[#FFFDFB] rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
         {/* LEFT COLUMN */}
-        <aside className="md:w-1/3 bg-gradient-to-b from-[#01014C] via-[#0B0B8C] to-[#36D1FF] p-8 flex flex-col items-center text-center">
+        <aside className="md:w-1/3 bg-gradient-to-b from-[#01014C] via-[#0A0A80] to-[#36D1FF] p-8 flex flex-col items-center text-center">
           <img
             src={architech.headshot_url || "/placeholder-avatar.png"}
             alt={architech.full_name}
@@ -37,18 +37,14 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-semibold mb-1 text-[#FFFDFB]">{architech.full_name}</h1>
           <p className="text-[#B3E9FF] mb-4">AI Architect</p>
 
-          {architech.hourly_rate && (
-            <div className="text-sm bg-[#36D1FF]/10 border border-[#36D1FF]/50 text-[#36D1FF] px-4 py-2 rounded-lg mb-4">
-              ${architech.hourly_rate} / hr
+          {/* Personality */}
+          {copy.personality && (
+            <div className="bg-[#36D1FF]/5 border border-[#36D1FF]/20 p-4 rounded-xl text-sm text-[#E0F7FF] mb-6 leading-relaxed">
+              {copy.personality}
             </div>
           )}
 
-          <div className="bg-[#36D1FF]/5 border border-[#36D1FF]/20 p-4 rounded-xl text-sm text-[#E0F7FF] mb-6 leading-relaxed">
-            {copy.personality ||
-              "Methodical and innovative problem-solver focused on practical AI automation design."}
-          </div>
-
-          {/* TECH SKILLS */}
+          {/* TECH STACK */}
           {copy.tech_skills && (
             <div className="w-full mb-6 text-left">
               <h3 className="text-sm font-semibold mb-2 text-[#B3E9FF] uppercase tracking-wide">
@@ -73,19 +69,22 @@ export default function ProfilePage() {
           )}
 
           {/* CTA BUTTONS */}
-          <div className="flex flex-col gap-3 w-full mt-auto">
-            {architech.video_url && (
-              <a
-                href={architech.video_url}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full text-center bg-[#36D1FF] text-[#01014C] font-semibold py-2 rounded-lg hover:bg-[#5FE2FF] transition-all"
-              >
-                🎥 Watch Intro Video
-              </a>
-            )}
-
-          </div>
+{/* CTA BUTTON */}
+{architech.loom_video_link && (
+  <div className="w-full mt-8">
+    <a
+      href={architech.loom_video_link}
+      target="_blank"
+      rel="noreferrer"
+      className="block w-full text-center font-semibold py-3 rounded-lg
+                 bg-[#36D1FF] text-[#01014C] 
+                 hover:bg-[#5FE2FF] hover:shadow-[0_0_20px_#36D1FF80] 
+                 transition-all duration-300 ease-out"
+    >
+      🎥 Watch Intro Video
+    </a>
+  </div>
+)}
         </aside>
 
         {/* RIGHT COLUMN */}
@@ -101,44 +100,48 @@ export default function ProfilePage() {
           </section>
 
           {/* Skills & AI Knowledge */}
-          <section>
-            <h2 className="text-xl font-semibold mb-3 border-b border-[#36D1FF]/40 pb-1">
-              Skills & AI Knowledge
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {copy.skills_ai_knowledge?.map((skill, i) => (
-                <div
-                  key={i}
-                  className="bg-[#FFFDFB] border border-[#36D1FF]/30 rounded-xl p-5 hover:border-[#36D1FF]/60 hover:shadow-[0_0_10px_#36D1FF40] transition-all"
-                >
-                  <p className="font-semibold text-[#01014C] mb-1">{skill.headline}</p>
-                  <p className="text-gray-700 text-sm">{skill.description}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+          {copy.skills_ai_knowledge && (
+            <section>
+              <h2 className="text-xl font-semibold mb-3 border-b border-[#36D1FF]/40 pb-1">
+                Skills & AI Knowledge
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {copy.skills_ai_knowledge.map((skill, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#FFFDFB] border border-[#36D1FF]/30 rounded-xl p-5 hover:border-[#36D1FF]/60 hover:shadow-[0_0_10px_#36D1FF40] transition-all"
+                  >
+                    <p className="font-semibold text-[#01014C] mb-1">{skill.headline}</p>
+                    <p className="text-gray-700 text-sm">{skill.description}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* Experience */}
-          <section>
-            <h2 className="text-xl font-semibold mb-3 border-b border-[#36D1FF]/40 pb-1">
-              Previous Experience
-            </h2>
-            <div className="space-y-6">
-              {copy.previous_experience?.map((exp, i) => (
-                <div
-                  key={i}
-                  className="bg-[#FFFDFB] border border-[#36D1FF]/30 rounded-xl p-5 hover:border-[#36D1FF]/60 hover:shadow-[0_0_10px_#36D1FF40] transition-all"
-                >
-                  <p className="font-semibold text-[#EB5D2A] mb-2">{exp.headline}</p>
-                  <ul className="list-disc pl-6 space-y-1 text-gray-700 text-sm">
-                    {exp.bullets.map((b, j) => (
-                      <li key={j}>{b}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* Previous Experience */}
+          {copy.previous_experience && (
+            <section>
+              <h2 className="text-xl font-semibold mb-3 border-b border-[#36D1FF]/40 pb-1">
+                Previous Experience
+              </h2>
+              <div className="space-y-6">
+                {copy.previous_experience.map((exp, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#FFFDFB] border border-[#36D1FF]/30 rounded-xl p-5 hover:border-[#36D1FF]/60 hover:shadow-[0_0_10px_#36D1FF40] transition-all"
+                  >
+                    <p className="font-semibold text-[#EB5D2A] mb-2">{exp.headline}</p>
+                    <ul className="list-disc pl-6 space-y-1 text-gray-700 text-sm">
+                      {exp.bullets.map((b, j) => (
+                        <li key={j}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </div>
