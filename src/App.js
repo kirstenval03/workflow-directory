@@ -16,6 +16,7 @@ import AdminApplications from './Pages/AdminApplications.jsx';
 import ProtectedRoute from './Components/ProtectedRoute.jsx';
 import AdminCandidates from "./Pages/AdminCandidates.jsx";
 import ProfilePage from "./Pages/ProfilePage.jsx"; // ✅ imported
+import ClientProfilePage from "./Pages/ClientProfilePage";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/aia-workflows-table" element={<AIWorkflowsTable />} />
         <Route path="/jobs" element={<JobBoard />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/client/profile/:applicationId" element={<ClientProfilePage />} />
 
         {/* Admin Routes (Protected by Supabase Auth) */}
         <Route

@@ -4,32 +4,45 @@ import { supabase } from "../supabaseClient";
 import { FiMapPin } from "react-icons/fi";
 import Logo from "../styles/Black-SVG-Landscape.svg";
 
-export default function ProfilePage() {
-  const { id } = useParams();
+export default function ClientProfilePage() {
+  const { applicationId } = useParams();
+  const [application, setApplication] = useState(null);
   const [architech, setArchitech] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchProfile() {
+    async function fetchData() {
       try {
-        const { data, error } = await supabase
-          .from("qualified_architechs")
-          .select(
-            "full_name, headshot_url, loom_video_link, current_location, ai_profile_copy"
-          )
-          .eq("id", id)
+        // Step 1: Get application info
+        const { data: appData, error: appError } = await supabase
+          .from("applications")
+          .select("id, bid_rate, qualified_architech_id")
+          .eq("id", applicationId)
           .single();
 
-        if (error) throw error;
-        setArchitech(data);
+        if (appError) throw appError;
+        setApplication(appData);
+
+        // Step 2: Get architech info
+        const { data: archData, error: archError } = await supabase
+          .from("qualified_architechs")
+          .select(
+            "full_name, headshot_url, loom_video_link, availability, current_location, ai_profile_copy"
+          )
+          .eq("id", appData.qualified_architech_id)
+          .single();
+
+        if (archError) throw archError;
+        setArchitech(archData);
       } catch (err) {
-        console.error("Error fetching profile:", err);
+        console.error("Error fetching client profile:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchProfile();
-  }, [id]);
+
+    fetchData();
+  }, [applicationId]);
 
   if (loading)
     return (
@@ -76,15 +89,40 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Hourly Rate (Placeholder) */}
+          {/* Hourly Rate */}
           <div className="bg-[#01014C] border border-[#36D1FF]/50 rounded-xl p-4 w-full text-left mb-4 shadow-[0_0_10px_#36D1FF20]">
             <p className="text-[#B3E9FF] text-sm font-semibold uppercase tracking-wide mb-1">
               Hourly Rate
             </p>
             <p className="text-[#36D1FF] text-lg font-bold">
-              — <span className="text-sm text-[#B3E9FF]">Pending Client Match</span>
+              ${application?.bid_rate}{" "}
+              <span className="text-sm text-[#B3E9FF]">USD/hr</span>
             </p>
           </div>
+
+          {/* Availability */}
+          {architech.availability && (
+            <div className="bg-[#01014C] border border-[#36D1FF]/30 rounded-xl p-4 w-full text-left mb-6">
+              <p className="text-[#E0F7FF] text-sm leading-relaxed">
+                {architech.availability?.toLowerCase() === "immediately" ? (
+                  <>
+                    Ready to start{" "}
+                    <span className="font-semibold text-[#36D1FF]">
+                      immediately
+                    </span>.
+                  </>
+                ) : (
+                  <>
+                    Ready to start with a{" "}
+                    <span className="font-semibold text-[#36D1FF]">
+                      {architech.availability}
+                    </span>{" "}
+                    notice.
+                  </>
+                )}
+              </p>
+            </div>
+          )}
 
           {/* Personality */}
           {copy.personality && (
