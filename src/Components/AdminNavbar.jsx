@@ -38,6 +38,13 @@ export default function AdminNavbar() {
             >
               Qualified Architechs
             </a>
+
+            <a
+              href="/admin/clients"
+              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+            >
+              Clients
+            </a>
           </div>
         </div>
 

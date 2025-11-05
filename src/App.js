@@ -17,6 +17,7 @@ import ProtectedRoute from './Components/ProtectedRoute.jsx';
 import AdminCandidates from "./Pages/AdminCandidates.jsx";
 import ProfilePage from "./Pages/ProfilePage.jsx"; // ✅ imported
 import ClientProfilePage from "./Pages/ClientProfilePage";
+import AdminClients from "./Pages/AdminClients";
 
 export default function App() {
   return (
@@ -60,7 +61,6 @@ export default function App() {
           }
         />
 
-        {/* ✅ New route for internal AI Architect Profile */}
         <Route
           path="/admin/profile/:id"
           element={
@@ -69,6 +69,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/admin/clients"
+          element={
+            <ProtectedRoute>
+              <AdminClients />
+            </ProtectedRoute>
+          }
+        />
+
 
       </Routes>
 
