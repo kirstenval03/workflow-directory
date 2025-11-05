@@ -234,8 +234,7 @@ export default function AdminClients() {
                           title={c.implementation_transcript || ""}
                         >
                           {c.implementation_transcript
-                            ? c.implementation_transcript.substring(0, 80) +
-                              "..."
+                            ? c.implementation_transcript.substring(0, 80) + "..."
                             : "—"}
                         </p>
                       )}
@@ -321,58 +320,78 @@ export default function AdminClients() {
                         </div>
                       ) : hasAllFields(c) ? (
                         <div className="flex flex-col gap-2 items-center">
-                          {c.job_draft_status?.trim().toLowerCase() ===
-                          "generated" ? (
-                            <button
-                              className="w-full bg-gray-400 text-white px-4 py-1.5 rounded-md text-xs font-medium hover:bg-gray-500"
-                              onClick={() =>
-                                setSelectedDraft({
-                                  client: c,
-                                  draft: c.job_draft,
-                                })
-                              }
-                            >
-                              View Job Draft
-                            </button>
-                          ) : (
-                            <button
-                              disabled={isGenerating}
-                              className={`w-full text-white px-4 py-1.5 rounded-md text-xs font-medium ${
-                                isGenerating
-                                  ? "bg-blue-400 cursor-not-allowed"
-                                  : "bg-blue-600 hover:bg-blue-700"
-                              } flex items-center justify-center gap-2`}
-                              onClick={() => handleGenerate(c)}
-                            >
-                              {isGenerating ? (
-                                <>
-                                  <svg
-                                    className="animate-spin h-4 w-4 text-white"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <circle
-                                      className="opacity-25"
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="currentColor"
-                                      strokeWidth="4"
-                                    ></circle>
-                                    <path
-                                      className="opacity-75"
-                                      fill="currentColor"
-                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                    ></path>
-                                  </svg>
-                                  Generating...
-                                </>
-                              ) : (
-                                "Generate Job Draft"
-                              )}
-                            </button>
-                          )}
+                          {(() => {
+                            const status = c.job_draft_status?.trim().toLowerCase();
+
+                            if (status === "published") {
+                              return (
+                                <a
+                                  href="/admin"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-medium text-center block"
+                                >
+                                  Job Published — See Job
+                                </a>
+                              );
+                            }
+
+                            if (status === "generated") {
+                              return (
+                                <button
+                                  className="w-full bg-gray-400 text-white px-4 py-1.5 rounded-md text-xs font-medium hover:bg-gray-500"
+                                  onClick={() =>
+                                    setSelectedDraft({
+                                      client: c,
+                                      draft: c.job_draft,
+                                    })
+                                  }
+                                >
+                                  View Job Draft
+                                </button>
+                              );
+                            }
+
+                            return (
+                              <button
+                                disabled={isGenerating}
+                                className={`w-full text-white px-4 py-1.5 rounded-md text-xs font-medium ${
+                                  isGenerating
+                                    ? "bg-blue-400 cursor-not-allowed"
+                                    : "bg-blue-600 hover:bg-blue-700"
+                                } flex items-center justify-center gap-2`}
+                                onClick={() => handleGenerate(c)}
+                              >
+                                {isGenerating ? (
+                                  <>
+                                    <svg
+                                      className="animate-spin h-4 w-4 text-white"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                      ></circle>
+                                      <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                      ></path>
+                                    </svg>
+                                    Generating...
+                                  </>
+                                ) : (
+                                  "Generate Job Draft"
+                                )}
+                              </button>
+                            );
+                          })()}
                           <button
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-medium"
                             onClick={() => setEditing(c.id)}
