@@ -2,12 +2,15 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
 import AdminNavbar from "../Components/AdminNavbar";
+import PublishJobModal from "../Components/PublishJobModal";
 
 export default function AdminClients() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState({});
+  const [generatingId, setGeneratingId] = useState(null);
+  const [selectedDraft, setSelectedDraft] = useState(null);
 
   // ===== Fetch Clients =====
   async function fetchClients() {
@@ -39,11 +42,35 @@ export default function AdminClients() {
     setLoading(false);
   }
 
+  // ===== On Mount =====
   useEffect(() => {
     fetchClients();
+
+    // 🔔 Realtime listener for job draft updates
+    const channel = supabase
+      .channel("job-draft-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "client_directory",
+          filter: "job_draft_status=eq.generated",
+        },
+        (payload) => {
+          console.log("🔄 Job draft updated:", payload.new);
+          toast.success(`Job Draft generated for ${payload.new.client_name}!`);
+          fetchClients();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  // ===== Utility Functions =====
+  // ===== Utility =====
   const hasAllFields = (c) =>
     c.implementation_transcript &&
     c.implementation_blueprint &&
@@ -71,38 +98,50 @@ export default function AdminClients() {
     }
   }
 
+  // ===== Generate Job Draft =====
   async function handleGenerate(client) {
     try {
-      toast.loading("Generating job draft...");
-      const res = await fetch("https://YOUR_N8N_WEBHOOK_URL_HERE", {
+      setGeneratingId(client.id);
+      toast.loading(`Sending data for ${client.client_name}...`);
+
+      const webhookUrl =
+        "https://aiarchitech.app.n8n.cloud/webhook/ae2c1351-391e-44eb-9b13-356ce4769f2c";
+
+      const payload = {
+        id: client.id,
+        client_name: client.client_name,
+        implementation_transcript: client.implementation_transcript,
+        implementation_blueprint: client.implementation_blueprint,
+        recruiter_transcript: client.recruiter_transcript,
+      };
+
+      console.log("📤 Sending data to n8n:", payload);
+
+      const response = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_name: client.client_name,
-          implementation_transcript: client.implementation_transcript,
-          implementation_blueprint: client.implementation_blueprint,
-          recruiter_transcript: client.recruiter_transcript,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Workflow failed");
-      const data = await res.json();
+      if (!response.ok) throw new Error(`Failed with status ${response.status}`);
 
-      const { error } = await supabase
+      console.log("✅ Successfully sent to n8n!");
+      toast.dismiss();
+      toast.success(`Job Draft started for ${client.client_name}!`);
+
+      // Immediately set to "processing"
+      await supabase
         .from("client_directory")
-        .update({
-          job_draft: data.job_draft,
-          job_draft_status: "generated",
-        })
+        .update({ job_draft_status: "processing" })
         .eq("id", client.id);
 
-      if (error) throw error;
-      toast.dismiss();
-      toast.success("Job Draft generated!");
       fetchClients();
     } catch (err) {
+      console.error("❌ Error sending data to n8n:", err);
       toast.dismiss();
-      toast.error(err.message);
+      toast.error("Failed to send data to n8n");
+    } finally {
+      setGeneratingId(null);
     }
   }
 
@@ -116,19 +155,17 @@ export default function AdminClients() {
   // ===== UI =====
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Navbar */}
       <AdminNavbar />
 
-      {/* Page Content */}
       <div className="max-w-6xl mx-auto px-6 pt-24 pb-12">
         <h1 className="text-2xl font-semibold mb-1 text-gray-900">
           Client Directory
         </h1>
         <p className="text-gray-500 mb-6">
-          View and manage all clients with their implementation and recruiter call data.
+          View and manage all clients with their implementation and recruiter
+          call data.
         </p>
 
-        {/* Table */}
         <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
           <table className="w-full text-sm text-gray-700 border-collapse">
             <thead className="bg-gray-50 border-b">
@@ -154,6 +191,8 @@ export default function AdminClients() {
             <tbody>
               {clients.map((c) => {
                 const isEditing = editing === c.id;
+                const isGenerating = generatingId === c.id;
+
                 return (
                   <tr
                     key={c.id}
@@ -282,24 +321,58 @@ export default function AdminClients() {
                         </div>
                       ) : hasAllFields(c) ? (
                         <div className="flex flex-col gap-2 items-center">
-                          {c.job_draft_status === "generated" ? (
+                          {c.job_draft_status?.trim().toLowerCase() ===
+                          "generated" ? (
                             <button
                               className="w-full bg-gray-400 text-white px-4 py-1.5 rounded-md text-xs font-medium hover:bg-gray-500"
                               onClick={() =>
-                                toast.info("Open modal to view job draft")
+                                setSelectedDraft({
+                                  client: c,
+                                  draft: c.job_draft,
+                                })
                               }
                             >
                               View Job Draft
                             </button>
                           ) : (
                             <button
-                              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-medium"
+                              disabled={isGenerating}
+                              className={`w-full text-white px-4 py-1.5 rounded-md text-xs font-medium ${
+                                isGenerating
+                                  ? "bg-blue-400 cursor-not-allowed"
+                                  : "bg-blue-600 hover:bg-blue-700"
+                              } flex items-center justify-center gap-2`}
                               onClick={() => handleGenerate(c)}
                             >
-                              Generate Job Draft
+                              {isGenerating ? (
+                                <>
+                                  <svg
+                                    className="animate-spin h-4 w-4 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                    ></path>
+                                  </svg>
+                                  Generating...
+                                </>
+                              ) : (
+                                "Generate Job Draft"
+                              )}
                             </button>
                           )}
-                          {/* Blue edit button */}
                           <button
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-medium"
                             onClick={() => setEditing(c.id)}
@@ -315,8 +388,7 @@ export default function AdminClients() {
                               !c.implementation_transcript &&
                                 "Implementation Transcript",
                               !c.implementation_blueprint && "Blueprint",
-                              !c.recruiter_transcript &&
-                                "Recruiter Transcript",
+                              !c.recruiter_transcript && "Recruiter Transcript",
                             ]
                               .filter(Boolean)
                               .join(", ")}
@@ -337,6 +409,15 @@ export default function AdminClients() {
           </table>
         </div>
       </div>
+
+      {/* ===== Publish Modal ===== */}
+      {selectedDraft && (
+        <PublishJobModal
+          client={selectedDraft.client}
+          draft={selectedDraft.draft}
+          onClose={() => setSelectedDraft(null)}
+        />
+      )}
     </div>
   );
 }
