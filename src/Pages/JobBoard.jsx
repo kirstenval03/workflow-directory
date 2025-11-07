@@ -15,7 +15,7 @@ export default function JobBoard() {
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
-        .eq('status', 'active')
+        .eq('status', 'open')
         .gt('closing_date', new Date().toISOString())
         .order('closing_date', { ascending: true });
 
