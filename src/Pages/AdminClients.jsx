@@ -11,6 +11,13 @@ export default function AdminClients() {
   const [formData, setFormData] = useState({});
   const [generatingId, setGeneratingId] = useState(null);
   const [selectedDraft, setSelectedDraft] = useState(null);
+  const [filter, setFilter] = useState("all");
+
+  // ===== Utility =====
+  const hasAllFields = (c) =>
+    c.implementation_transcript &&
+    c.implementation_blueprint &&
+    c.recruiter_transcript;
 
   // ===== Fetch Clients =====
   async function fetchClients() {
@@ -29,7 +36,6 @@ export default function AdminClients() {
       return;
     }
 
-    // Sort: ready-to-generate first
     const sorted = [...data].sort((a, b) => {
       const aReady = hasAllFields(a);
       const bReady = hasAllFields(b);
@@ -46,7 +52,6 @@ export default function AdminClients() {
   useEffect(() => {
     fetchClients();
 
-    // 🔔 Realtime listener for job draft updates
     const channel = supabase
       .channel("job-draft-updates")
       .on(
@@ -58,7 +63,6 @@ export default function AdminClients() {
           filter: "job_draft_status=eq.generated",
         },
         (payload) => {
-          console.log("🔄 Job draft updated:", payload.new);
           toast.success(`Job Draft generated for ${payload.new.client_name}!`);
           fetchClients();
         }
@@ -69,12 +73,6 @@ export default function AdminClients() {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  // ===== Utility =====
-  const hasAllFields = (c) =>
-    c.implementation_transcript &&
-    c.implementation_blueprint &&
-    c.recruiter_transcript;
 
   function handleChange(id, field, value) {
     setFormData((prev) => ({
@@ -115,8 +113,6 @@ export default function AdminClients() {
         recruiter_transcript: client.recruiter_transcript,
       };
 
-      console.log("📤 Sending data to n8n:", payload);
-
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,11 +121,9 @@ export default function AdminClients() {
 
       if (!response.ok) throw new Error(`Failed with status ${response.status}`);
 
-      console.log("✅ Successfully sent to n8n!");
       toast.dismiss();
       toast.success(`Job Draft started for ${client.client_name}!`);
 
-      // Immediately set to "processing"
       await supabase
         .from("client_directory")
         .update({ job_draft_status: "processing" })
@@ -137,7 +131,6 @@ export default function AdminClients() {
 
       fetchClients();
     } catch (err) {
-      console.error("❌ Error sending data to n8n:", err);
       toast.dismiss();
       toast.error("Failed to send data to n8n");
     } finally {
@@ -152,46 +145,72 @@ export default function AdminClients() {
       </div>
     );
 
+  // ===== Filter Logic =====
+  const filteredClients = clients.filter((c) => {
+    const isReady = hasAllFields(c);
+    const isPublished = c.job_draft_status?.trim().toLowerCase() === "published";
+    if (filter === "ready") return isReady && !isPublished;
+    if (filter === "not-ready") return !isReady;
+    if (filter === "posted") return isPublished;
+    return true;
+  });
+
   // ===== UI =====
   return (
     <div className="bg-gray-50 min-h-screen">
       <AdminNavbar />
 
-      <div className="max-w-6xl mx-auto px-6 pt-24 pb-12">
-        <h1 className="text-2xl font-semibold mb-1 text-gray-900">
-          Client Directory
-        </h1>
-        <p className="text-gray-500 mb-6">
-          View and manage all clients with their implementation and recruiter
-          call data.
-        </p>
+      <div className="max-w-7xl mx-auto px-6 pt-24 pb-12">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold mb-1 text-gray-900">
+              Client Directory
+            </h1>
+            <p className="text-gray-500">
+              View and manage all clients with their implementation and recruiter call data.
+            </p>
+          </div>
+
+          {/* Filter */}
+          <select
+            className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="ready">Ready to Post</option>
+            <option value="not-ready">Not Yet Ready</option>
+            <option value="posted">Job Posted</option>
+          </select>
+        </div>
 
         <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
           <table className="w-full text-sm text-gray-700 border-collapse">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left font-medium w-[18%]">
-                  Client
-                </th>
-                <th className="px-6 py-3 text-left font-medium w-[25%]">
+                <th className="px-6 py-3 text-left font-medium w-[10%]">Client</th>
+                <th className="px-6 py-3 text-left font-medium w-[20%]">
                   Implementation Transcript
                 </th>
-                <th className="px-6 py-3 text-left font-medium w-[12%]">
-                  Blueprint
-                </th>
-                <th className="px-6 py-3 text-left font-medium w-[25%]">
+                <th className="px-6 py-3 text-left font-medium w-[10%]">Blueprint</th>
+                <th className="px-6 py-3 text-left font-medium w-[20%]">
                   Recruiter Transcript
                 </th>
-                <th className="px-6 py-3 text-center font-medium w-[20%]">
-                  Action
-                </th>
+                <th className="px-6 py-3 text-left font-medium w-[25%]">Assets</th>
+                <th className="px-6 py-3 text-center font-medium w-[25%]">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {clients.map((c) => {
+              {filteredClients.map((c) => {
                 const isEditing = editing === c.id;
                 const isGenerating = generatingId === c.id;
+                const check = (condition) =>
+                  condition ? (
+                    <span className="text-green-600 font-semibold">✔</span>
+                  ) : (
+                    <span className="text-red-500 font-semibold">✖</span>
+                  );
 
                 return (
                   <tr
@@ -202,12 +221,8 @@ export default function AdminClients() {
                   >
                     {/* Client */}
                     <td className="px-6 py-4 align-top break-words">
-                      <div className="font-semibold text-gray-900">
-                        {c.client_name}
-                      </div>
-                      <div className="text-gray-500 text-xs">
-                        {c.client_email}
-                      </div>
+                      <div className="font-semibold text-gray-900">{c.client_name}</div>
+                      <div className="text-gray-500 text-xs">{c.client_email}</div>
                     </td>
 
                     {/* Implementation Transcript */}
@@ -301,6 +316,17 @@ export default function AdminClients() {
                       )}
                     </td>
 
+                    {/* ✅ Assets Column */}
+                    <td className="px-6 py-4 align-top">
+                      <div className="flex flex-col text-xs space-y-1">
+                        <div>
+                          {check(c.implementation_transcript)} Implementation Transcript
+                        </div>
+                        <div>{check(c.recruiter_transcript)} Recruiter Transcript</div>
+                        <div>{check(c.implementation_blueprint)} Implementation Blueprint</div>
+                      </div>
+                    </td>
+
                     {/* Actions */}
                     <td className="px-6 py-4 text-center align-top w-[200px] whitespace-normal">
                       {isEditing ? (
@@ -331,7 +357,7 @@ export default function AdminClients() {
                                   rel="noreferrer"
                                   className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-medium text-center block"
                                 >
-                                  Job Published — See Job
+                                  Job Posted — See Job
                                 </a>
                               );
                             }
@@ -401,17 +427,7 @@ export default function AdminClients() {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-center">
-                          <span className="text-gray-500 text-xs leading-snug break-words">
-                            Missing{" "}
-                            {[
-                              !c.implementation_transcript &&
-                                "Implementation Transcript",
-                              !c.implementation_blueprint && "Blueprint",
-                              !c.recruiter_transcript && "Recruiter Transcript",
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </span>
+        
                           <button
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-medium"
                             onClick={() => setEditing(c.id)}
