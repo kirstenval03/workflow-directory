@@ -1,8 +1,13 @@
-export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplications }) {
+export default function AdminJobCard({
+  job,
+  onEdit,
+  onStatusToggle,
+  onViewApplications,
+}) {
   const isClosed = job.status === "closed";
 
   const statusColor =
-    job.status === "active"
+    job.status === "open"
       ? "bg-blue-100 text-blue-700"
       : "bg-gray-200 text-gray-600";
 
@@ -11,6 +16,15 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplic
     typeof job.closing_in === "string"
       ? job.closing_in.includes("day") && parseInt(job.closing_in) <= 2
       : false;
+
+  // 🔹 Format closing date and time
+  const formattedClosingDate = job.closing_date
+    ? new Date(job.closing_date).toLocaleString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "2-digit",
+      })
+    : "N/A";
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex justify-between items-start">
@@ -25,15 +39,16 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplic
           </span>
 
           {/* 🕒 Closing Soon pill */}
-          {job.status === "active" && isClosingSoon && (
+          {job.status === "open" && isClosingSoon && (
             <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium">
               Closing Soon
             </span>
           )}
         </div>
 
+        {/* Hourly budget + closing info */}
         <p className="text-sm text-gray-500 mb-1">
-          Pay Range {job.pay} • Closes in {job.closing_in}
+          Hourly Budget: ${job.pay} • Closes on {formattedClosingDate}
         </p>
 
         <p className="text-gray-600 text-sm mb-3">{job.preview}</p>
@@ -52,7 +67,7 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplic
             onClick={() => onViewApplications(job)}
             className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition"
           >
-            View Applications
+            View Applicants
           </button>
 
           {/* CLOSE / REOPEN */}
@@ -68,7 +83,7 @@ export default function AdminJobCard({ job, onEdit, onStatusToggle, onViewApplic
 
       {/* Right side: application count */}
       <p className="text-sm text-gray-500 whitespace-nowrap">
-        {job.applications} application{job.applications !== 1 && "s"}
+        {job.applications} applicant{job.applications !== 1 && "s"}
       </p>
     </div>
   );

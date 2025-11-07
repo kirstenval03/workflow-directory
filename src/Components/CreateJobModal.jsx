@@ -26,7 +26,7 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
         detailed_description: detailedDescription,
         hourly_pay_range: hourlyPayRange,
         closing_date: closingDate,
-        status: "active",
+        status: "open",
         posted_at: new Date().toISOString(),
         created_by: user?.id || null, // 👈 attaches current user ID
       },

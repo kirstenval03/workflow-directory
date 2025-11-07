@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import toast from "react-hot-toast";
 import AdminNavbar from "../Components/AdminNavbar";
-import StatCard from "../Components/StatCard";
 import AdminJobCard from "../Components/AdminJobCard";
 import CreateJobModal from "../Components/CreateJobModal";
 import EditJobModal from "../Components/EditJobModal";
@@ -15,6 +14,7 @@ export default function AdminDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [viewingJob, setViewingJob] = useState(null);
+  const [filter, setFilter] = useState("all"); // 👈 new filter state
 
   useEffect(() => {
     fetchJobs();
@@ -27,7 +27,6 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
 
-      // Fetch jobs
       const { data: jobsData, error: jobsError } = await supabase
         .from("jobs")
         .select("*")
@@ -35,14 +34,12 @@ export default function AdminDashboard() {
 
       if (jobsError) throw jobsError;
 
-      // Fetch all applications
       const { data: appsData, error: appsError } = await supabase
         .from("applications")
         .select("id, job_id");
 
       if (appsError) throw appsError;
 
-      // Count applications per job
       const jobsWithCounts = jobsData.map((job) => {
         const appCount = appsData.filter((app) => app.job_id === job.id).length;
         return { ...job, applications: appCount };
@@ -87,17 +84,15 @@ export default function AdminDashboard() {
       let updateData;
 
       if (isClosed) {
-        // 🟢 Reopen the job for 3 days
         const newClosingDate = new Date();
         newClosingDate.setDate(newClosingDate.getDate() + 3);
 
         updateData = {
-          status: "active",
+          status: "open", // 👈 changed from active → open
           closing_date: newClosingDate.toISOString().split("T")[0],
           updated_at: new Date().toISOString(),
         };
       } else {
-        // 🔴 Close the job early
         updateData = {
           status: "closed",
           closing_date: today,
@@ -126,16 +121,11 @@ export default function AdminDashboard() {
   };
 
   // ────────────────────────────────────────────────
-  // DERIVED STATS
-  const activeJobs = jobs.filter((j) => j.status === "active");
-
-  // 🕒 Only jobs closing in 48 hours or less
-  const closingSoon = activeJobs.filter((j) => {
-    if (!j.closing_date) return false;
-    const diffHours =
-      (new Date(j.closing_date) - new Date()) / (1000 * 60 * 60);
-    return diffHours <= 48 && diffHours >= 0;
-  });
+  // FILTERED JOBS BASED ON STATUS
+  const filteredJobs =
+    filter === "all"
+      ? jobs
+      : jobs.filter((j) => j.status === filter.toLowerCase());
 
   // ────────────────────────────────────────────────
   // LOADING STATE
@@ -153,30 +143,36 @@ export default function AdminDashboard() {
       <AdminNavbar />
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <StatCard title="Active Jobs" value={activeJobs.length} />
-          <StatCard title="Total Applications" value={applicationsCount} />
-          <StatCard title="Closing Soon" value={closingSoon.length} />
-        </div>
-
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Job Positions</h2>
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-            onClick={() => setShowCreateModal(true)}
+          <div className="flex items-center gap-3">
+            {/* 👇 Filter dropdown */}
+          <select
+            className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
           >
-            + Create Job
-          </button>
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + Create Job
+            </button>
+          </div>
         </div>
 
         {/* Job List */}
-        {jobs.length === 0 ? (
+        {filteredJobs.length === 0 ? (
           <p className="text-gray-500 text-sm">No jobs found.</p>
         ) : (
           <div className="space-y-4">
-            {jobs.map((job) => (
+            {filteredJobs.map((job) => (
               <AdminJobCard
                 key={job.id}
                 job={{
@@ -189,7 +185,7 @@ export default function AdminDashboard() {
                 }}
                 onEdit={() => setSelectedJob(job)}
                 onStatusToggle={handleStatusToggle}
-                onViewApplications={() => setViewingJob(job)} // 👈 open modal
+                onViewApplications={() => setViewingJob(job)}
               />
             ))}
           </div>

@@ -24,7 +24,7 @@ export default function AdminNavbar() {
               href="/admin"
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
             >
-              Jobs
+              Job Board
             </a>
             <a
               href="/admin/applications"
@@ -36,7 +36,7 @@ export default function AdminNavbar() {
               href="/admin/candidates"
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
             >
-              Qualified Architechs
+             Architechs
             </a>
 
             <a
