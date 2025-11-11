@@ -27,12 +27,6 @@ export default function AdminNavbar() {
               Job Board
             </a>
             <a
-              href="/admin/applications"
-              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-            >
-              Applications
-            </a>
-            <a
               href="/admin/candidates"
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
             >

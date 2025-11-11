@@ -80,6 +80,34 @@ export default function AdminCandidates() {
   };
 
   // ==========================
+  // AUTO-SCROLL TO ?email=
+  // ==========================
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetEmail = params.get("email");
+    if (!targetEmail || candidates.length === 0) return;
+
+    setTimeout(() => {
+      const el = document.querySelector(
+        `[data-email="${targetEmail.toLowerCase()}"]`
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add(
+          "ring-2",
+          "ring-blue-400",
+          "rounded-md",
+          "bg-blue-50",
+          "transition"
+        );
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-blue-400", "bg-blue-50");
+        }, 4000);
+      }
+    }, 600);
+  }, [candidates]);
+
+  // ==========================
   // APPLICATIONS MODAL
   // ==========================
   const openModal = async (candidate) => {
@@ -111,48 +139,48 @@ export default function AdminCandidates() {
     setModalCandidate(null);
   };
 
- // ==========================
-// DETAILS MODAL (FETCH FULL PROFILE)
-// ==========================
-const openDetailsModal = async (candidate) => {
-  setDetailsOpen(true);
-  setLoadingDetails(true);
+  // ==========================
+  // DETAILS MODAL (FETCH FULL PROFILE)
+  // ==========================
+  const openDetailsModal = async (candidate) => {
+    setDetailsOpen(true);
+    setLoadingDetails(true);
 
-  try {
-    const { data, error } = await supabase
-      .from("qualified_architechs")
-      .select(`
-      id,
-      full_name,
-      email,
-      created_at,
-      headshot_url,
-      current_location,
-      availability,
-      programming_languages,
-      automation_platforms,
-      database_technologies,
-      database_experience,
-      resume,
-      interview_transcript,
-      recruiter_notes,
-      github_profile,
-      loom_video_link,
-      resume_link,
-      ai_profile_copy
-      `)
-      .eq("id", candidate.id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("qualified_architechs")
+        .select(`
+        id,
+        full_name,
+        email,
+        created_at,
+        headshot_url,
+        current_location,
+        availability,
+        programming_languages,
+        automation_platforms,
+        database_technologies,
+        database_experience,
+        resume,
+        interview_transcript,
+        recruiter_notes,
+        github_profile,
+        loom_video_link,
+        resume_link,
+        ai_profile_copy
+        `)
+        .eq("id", candidate.id)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    setSelectedArchitech(data);
-  } catch (error) {
-    console.error("Error fetching architech details:", error.message);
-  } finally {
-    setLoadingDetails(false);
-  }
-};
+      setSelectedArchitech(data);
+    } catch (error) {
+      console.error("Error fetching architech details:", error.message);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   // ==========================
   // FILTERING + SORTING
@@ -261,27 +289,32 @@ const openDetailsModal = async (candidate) => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredCandidates.map((cand) => (
-                  <tr key={cand.id} className="hover:bg-gray-50">
+                  <tr
+                    key={cand.id}
+                    data-email={cand.email.toLowerCase()}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
                     {/* Avatar + Name */}
                     <td className="px-6 py-3 flex items-center gap-3 text-gray-800 font-medium">
-{cand.headshot_url ? (
-  <img
-    src={cand.headshot_url}
-    alt={cand.name}
-    onError={(e) => (e.target.src = "/placeholder-avatar.png")}
-    className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover border border-gray-200"
-  />
-) : (
-  <div
-    className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full 
-               bg-gradient-to-br from-blue-500 to-indigo-600 
-               flex items-center justify-center text-white text-xs font-semibold 
-               shrink-0"
-    style={{ aspectRatio: "1 / 1" }}
-  >
-    {cand.name?.[0]?.toUpperCase() || "?"}
-  </div>
-)}
+                      {cand.headshot_url ? (
+                        <img
+                          src={cand.headshot_url}
+                          alt={cand.name}
+                          onError={(e) =>
+                            (e.target.src = "/placeholder-avatar.png")
+                          }
+                          className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div
+                          className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full 
+                          bg-gradient-to-br from-blue-500 to-indigo-600 
+                          flex items-center justify-center text-white text-xs font-semibold 
+                          shrink-0"
+                        >
+                          {cand.name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      )}
                       {cand.name || "—"}
                     </td>
 
@@ -382,7 +415,9 @@ const openDetailsModal = async (candidate) => {
                         {app.supporting_links ? (
                           <p>{app.supporting_links}</p>
                         ) : (
-                          <p className="italic text-gray-400">No notes provided.</p>
+                          <p className="italic text-gray-400">
+                            No notes provided.
+                          </p>
                         )}
                       </div>
                     </div>
