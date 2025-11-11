@@ -24,7 +24,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
       setLoading(true);
       const { data, error } = await supabase
         .from("applications")
-        .select("*")
+        .select("*, qualified_architechs(ai_profile_copy, headshot_url)")
         .eq("job_id", job.id)
         .order("applied_at", { ascending: false });
       if (error) throw error;
@@ -66,19 +66,18 @@ export default function ViewApplicationsModal({ job, onClose }) {
   };
 
   if (!job) return null;
-// Reusable button classnames (identical height + alignment)
-const BTN_BASE =
-  "h-9 min-w-[156px] px-4 inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap leading-none align-middle"; 
 
-const BTN_PRIMARY = `${BTN_BASE} text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-105 focus:outline-none focus:ring-0 shadow-none transform-none transition-colors`;
+  // Reusable button classnames
+  const BTN_BASE =
+    "h-9 min-w-[156px] px-4 inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap leading-none align-middle";
 
+  const BTN_PRIMARY = `${BTN_BASE} text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-105 focus:outline-none focus:ring-0 shadow-none transform-none transition-colors`;
 
-const BTN_OUTLINE_BLUE =
-  `${BTN_BASE} text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 transition`;
+  const BTN_OUTLINE_BLUE = `${BTN_BASE} text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 transition`;
 
-const BTN_OUTLINE_GRAY =
-  `${BTN_BASE} text-gray-700 border border-gray-300 hover:border-gray-400 bg-white transition`;
+  const BTN_OUTLINE_GRAY = `${BTN_BASE} text-gray-700 border border-gray-300 hover:border-gray-400 bg-white transition`;
 
+  const BTN_DISABLED = `${BTN_BASE} text-gray-500 border border-gray-200 bg-gray-100 cursor-not-allowed`;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
@@ -125,44 +124,63 @@ const BTN_OUTLINE_GRAY =
                 }`}
               >
                 {/* LEFT */}
-                <div className="flex flex-col text-sm text-gray-700 w-full sm:w-2/3">
-                  <div className="flex items-center gap-2 font-semibold text-gray-900">
-                    <FiUser className="text-gray-500" />
-                    {app.first_name} {app.last_name}
-                  </div>
-                  <p className="text-gray-600 text-sm">{app.email}</p>
+<div className="flex items-center gap-3 w-full sm:w-2/3">
+  {/* Avatar */}
+  {app.qualified_architechs?.headshot_url ? (
+    <img
+      src={app.qualified_architechs.headshot_url}
+      alt={`${app.first_name} ${app.last_name}`}
+      className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
+    />
+  ) : (
+    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-base flex-shrink-0">
+      <FiUser />
+    </div>
+  )}
 
-                  <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <FiDollarSign className="text-gray-400" />
-                      <span>
-                        Bid Rate:{" "}
-                        <span className="font-medium text-blue-600">
-                          ${app.bid_rate || "N/A"}/hr
-                        </span>
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FiClock className="text-gray-400" />
-                      Applied on{" "}
-                      {app.applied_at
-                        ? new Date(app.applied_at).toLocaleDateString(
-                            undefined,
-                            { month: "short", day: "numeric", year: "numeric" }
-                          )
-                        : "N/A"}
-                    </span>
-                  </div>
+  {/* Name + Email */}
+  <div className="flex flex-col">
+    <span className="font-semibold text-gray-900 leading-tight">
+      {app.first_name} {app.last_name}
+    </span>
+    <span className="text-gray-600 text-sm leading-tight">
+      {app.email}
+    </span>
 
-                  {app.supporting_links && (
-                    <div className="mt-1 text-xs text-gray-600 flex items-start gap-1">
-                      <FiLink className="text-gray-400 mt-[2px]" />
-                      <span className="leading-snug break-words">
-                        {app.supporting_links}
-                      </span>
-                    </div>
-                  )}
-                </div>
+    <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
+      <span className="flex items-center gap-1">
+        <FiDollarSign className="text-gray-400" />
+        <span>
+          Bid Rate:{" "}
+          <span className="font-medium text-blue-600">
+            ${app.bid_rate || "N/A"}/hr
+          </span>
+        </span>
+      </span>
+      <span className="flex items-center gap-1">
+        <FiClock className="text-gray-400" />
+        Applied on{" "}
+        {app.applied_at
+          ? new Date(app.applied_at).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "N/A"}
+      </span>
+    </div>
+
+    {app.supporting_links && (
+      <div className="mt-1 text-xs text-gray-600 flex items-start gap-1">
+        <FiLink className="text-gray-400 mt-[2px]" />
+        <span className="leading-snug break-words">
+          {app.supporting_links}
+        </span>
+      </div>
+    )}
+  </div>
+</div>
+
 
                 {/* RIGHT (Buttons) */}
                 <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
@@ -176,23 +194,29 @@ const BTN_OUTLINE_GRAY =
                       <FiExternalLink className="w-4 h-4 mr-1" />
                       View Profile
                     </a>
-                  ) : (
+                  ) : app.qualified_architechs?.ai_profile_copy ? (
                     <button
                       onClick={() => handleGenerateProfile(app)}
                       className={BTN_PRIMARY}
                     >
                       Generate Profile
                     </button>
+                  ) : (
+                    <button disabled className={BTN_DISABLED}>
+                      Profile Not Ready
+                    </button>
                   )}
-<a
-  href={`/admin/candidates?email=${encodeURIComponent(app.email)}`}
-  target="_blank"
-  rel="noreferrer"
-  className={BTN_OUTLINE_GRAY}
->
-  View Architech
-</a>
 
+                  <a
+                    href={`/admin/candidates?email=${encodeURIComponent(
+                      app.email
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={BTN_OUTLINE_GRAY}
+                  >
+                    View Architech
+                  </a>
                 </div>
               </div>
             ))}
