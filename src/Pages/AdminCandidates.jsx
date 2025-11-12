@@ -439,7 +439,7 @@ export default function AdminCandidates() {
       </Dialog>
 
       {/* =====================
-          DETAILS MODAL
+          DETAILS MODALLLL
       ====================== */}
       <ArchitechDetailsModal
         isOpen={detailsOpen}
