@@ -30,7 +30,7 @@ export default function AdminCandidates() {
   }, []);
 
   // ==========================
-  // FETCH ALL CANDIDATES + APPLICATIONS
+  // FETCH CANDIDATES + APPS
   // ==========================
   const fetchData = async () => {
     setLoading(true);
@@ -38,7 +38,20 @@ export default function AdminCandidates() {
     const { data: architechsData, error: archError } = await supabase
       .from("qualified_architechs")
       .select(
-        "id, full_name, email, current_location, availability, created_at, headshot_url"
+        `
+        id,
+        full_name,
+        email,
+        current_location,
+        availability,
+        created_at,
+        headshot_url,
+        stage,
+        resume,
+        interview_transcript,
+        ai_profile_copy,
+        slug
+      `
       );
 
     const { data: applicationsData, error: appsError } = await supabase
@@ -56,6 +69,7 @@ export default function AdminCandidates() {
       if (!id) return acc;
       if (!acc[id]) acc[id] = { count: 0, lastApplied: null };
       acc[id].count += 1;
+
       const appliedDate = new Date(app.applied_at);
       if (!acc[id].lastApplied || appliedDate > acc[id].lastApplied) {
         acc[id].lastApplied = appliedDate;
@@ -63,20 +77,29 @@ export default function AdminCandidates() {
       return acc;
     }, {});
 
-    const merged = architechsData.map((a) => ({
-      id: a.id,
-      name: a.full_name,
-      email: a.email,
-      location: a.current_location,
-      availability: a.availability,
-      created_at: a.created_at,
-      headshot_url: a.headshot_url,
-      applicationsCount: appStats[a.id]?.count || 0,
-      lastApplied: appStats[a.id]?.lastApplied || null,
-    }));
+const merged = architechsData.map((a) => ({
+  id: a.id,
+  name: a.full_name,
+  email: a.email,
+  location: a.current_location,
+  availability: a.availability,
+  created_at: a.created_at,
+  headshot_url: a.headshot_url,
+  stage: a.stage,
+  resume: a.resume,
+  interview_transcript: a.interview_transcript,
+  ai_profile_copy: a.ai_profile_copy,
+  slug: a.slug,
+  applicationsCount: appStats[a.id]?.count || 0,
+  lastApplied: appStats[a.id]?.lastApplied || null,
+}));
 
-    setCandidates(merged);
-    setLoading(false);
+// ✅ Default alphabetical sorting
+const sorted = merged.sort((a, b) => a.name.localeCompare(b.name));
+
+setCandidates(sorted);
+setLoading(false);
+
   };
 
   // ==========================
@@ -140,7 +163,7 @@ export default function AdminCandidates() {
   };
 
   // ==========================
-  // DETAILS MODAL (FETCH FULL PROFILE)
+  // DETAILS MODAL
   // ==========================
   const openDetailsModal = async (candidate) => {
     setDetailsOpen(true);
@@ -274,19 +297,20 @@ export default function AdminCandidates() {
                     Architech
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Email
+                    Stage
                   </th>
                   <th className="px-6 py-3 text-center font-medium text-gray-600">
                     Applications
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Last Application Submitted
+                    Profile Generated
                   </th>
                   <th className="px-6 py-3 text-right font-medium text-gray-600">
                     Action
                   </th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-gray-100">
                 {filteredCandidates.map((cand) => (
                   <tr
@@ -295,38 +319,75 @@ export default function AdminCandidates() {
                     className="hover:bg-gray-50 transition-colors"
                   >
                     {/* Avatar + Name */}
-                    <td className="px-6 py-3 flex items-center gap-3 text-gray-800 font-medium">
-                      {cand.headshot_url ? (
-                        <img
-                          src={cand.headshot_url}
-                          alt={cand.name}
-                          onError={(e) =>
-                            (e.target.src = "/placeholder-avatar.png")
-                          }
-                          className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover border border-gray-200"
-                        />
-                      ) : (
-                        <div
-                          className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full 
-                          bg-gradient-to-br from-blue-500 to-indigo-600 
-                          flex items-center justify-center text-white text-xs font-semibold 
-                          shrink-0"
-                        >
-                          {cand.name?.[0]?.toUpperCase() || "?"}
-                        </div>
-                      )}
-                      {cand.name || "—"}
+<td className="px-6 py-4">
+  <div className="flex items-center gap-3">
+    {/* Avatar */}
+    {cand.headshot_url ? (
+      <img
+        src={cand.headshot_url}
+        alt={cand.name}
+        onError={(e) => (e.target.src = "/placeholder-avatar.png")}
+        className="w-10 h-10 rounded-full object-cover border border-gray-200"
+      />
+    ) : (
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+        {cand.name?.[0]?.toUpperCase() || "?"}
+      </div>
+    )}
+
+    {/* Name + Email */}
+    <div className="flex flex-col">
+      <span className="font-semibold text-gray-800">
+        {cand.name || "—"}
+      </span>
+      <span className="text-gray-500 text-xs">{cand.email}</span>
+    </div>
+  </div>
+</td>
+
+
+                    {/* Stage */}
+                    <td className="px-6 py-3 text-gray-700">
+                      {cand.stage || "—"}
                     </td>
 
-                    <td className="px-6 py-3 text-gray-600">{cand.email}</td>
+                    {/* Applications */}
                     <td className="px-6 py-3 text-center">
                       <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
                         {cand.applicationsCount}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-gray-600">
-                      {formatDate(cand.lastApplied)}
-                    </td>
+
+                    {/* Profile Generated */}
+<td className="px-6 py-3 text-gray-700">
+  {cand.ai_profile_copy ? (
+    <a
+      href={`/admin/profile/${cand.id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-600 font-medium underline hover:text-blue-800"
+    >
+      View Profile
+    </a>
+  ) : (
+    <div className="space-y-1 text-sm">
+      <div className="flex items-center gap-1">
+        <span>{cand.resume ? "✔️" : "❌"}</span>
+        <span>Resume</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span>{cand.interview_transcript ? "✔️" : "❌"}</span>
+        <span>Interview Transcript</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span>{cand.availability ? "✔️" : "❌"}</span>
+        <span>Availability</span>
+      </div>
+    </div>
+  )}
+</td>
+
+                    {/* Actions */}
                     <td className="px-6 py-3 text-right flex gap-2 justify-end">
                       {/* View Applications */}
                       <button
@@ -347,9 +408,10 @@ export default function AdminCandidates() {
                     </td>
                   </tr>
                 ))}
+
                 {filteredCandidates.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-gray-500">
+                    <td colSpan={6} className="text-center py-6 text-gray-500">
                       No candidates found.
                     </td>
                   </tr>
@@ -439,7 +501,7 @@ export default function AdminCandidates() {
       </Dialog>
 
       {/* =====================
-          DETAILS MODALLLL
+          DETAILS MODAL
       ====================== */}
       <ArchitechDetailsModal
         isOpen={detailsOpen}
