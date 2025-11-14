@@ -19,15 +19,28 @@ export default function ViewApplicationsModal({ job, onClose }) {
     if (job?.id) fetchApplications();
   }, [job]);
 
+  // ===========================================================
+  // FETCH APPLICATIONS
+  // ===========================================================
   const fetchApplications = async () => {
     try {
       setLoading(true);
+
       const { data, error } = await supabase
         .from("applications")
-        .select("*, qualified_architechs(ai_profile_copy, headshot_url)")
+        .select(`
+          *,
+          qualified_architechs (
+            ai_profile_copy,
+            headshot_url,
+            status
+          )
+        `)
         .eq("job_id", job.id)
         .order("applied_at", { ascending: false });
+
       if (error) throw error;
+
       setApplications(data || []);
     } catch (err) {
       console.error("Error fetching applications:", err.message);
@@ -41,8 +54,12 @@ export default function ViewApplicationsModal({ job, onClose }) {
     setConfirmModal(true);
   };
 
+  // ===========================================================
+  // GENERATE PROFILE
+  // ===========================================================
   const confirmGenerateProfile = async () => {
     if (!selectedApp) return;
+
     try {
       const base =
         process.env.REACT_APP_PUBLIC_SITE_URL || window.location.origin;
@@ -50,12 +67,15 @@ export default function ViewApplicationsModal({ job, onClose }) {
 
       const { error } = await supabase
         .from("applications")
-        .update({ stage: "Top 5 selected", profile_url: profileUrl })
+        .update({
+          application_stage: "submitted_to_client",
+          profile_url: profileUrl,
+        })
         .eq("id", selectedApp.id);
 
       if (error) throw error;
 
-      toast.success("Profile generated and stage updated!");
+      toast.success("Profile generated and application updated!");
       setConfirmModal(false);
       fetchApplications();
       window.open(profileUrl, "_blank");
@@ -67,25 +87,76 @@ export default function ViewApplicationsModal({ job, onClose }) {
 
   if (!job) return null;
 
-  // Reusable button classnames
+  // ===========================================================
+  // PILL RENDERERS
+  // ===========================================================
+  const renderArchitechStatusPill = (status) => {
+    const base = "px-2 py-0.5 rounded-full text-xs font-medium capitalize";
+
+    const colors = {
+      active: "bg-green-100 text-green-700",
+      submitted: "bg-yellow-100 text-yellow-700",
+      placed: "bg-blue-100 text-blue-700",
+      inactive: "bg-gray-200 text-gray-700",
+      disqualified: "bg-red-100 text-red-700",
+    };
+
+    return (
+      <span className={`${base} ${colors[status] || "bg-gray-100 text-gray-600"}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const renderApplicationStagePill = (stage) => {
+    const base = "px-2 py-0.5 rounded-full text-xs font-medium capitalize";
+
+    const labels = {
+      applied: "applied",
+      submitted_to_client: "submitted",
+      not_selected: "not selected",
+      hired: "hired",
+    };
+
+    const colors = {
+      applied: "bg-gray-200 text-gray-700",
+      submitted_to_client: "bg-yellow-100 text-yellow-700",
+      not_selected: "bg-red-100 text-red-700",
+      hired: "bg-green-100 text-green-700",
+    };
+
+    return (
+      <span className={`${base} ${colors[stage] || "bg-gray-100 text-gray-600"}`}>
+        {labels[stage] || stage}
+      </span>
+    );
+  };
+
+  // ===========================================================
+  // BUTTON STYLES
+  // ===========================================================
   const BTN_BASE =
-    "h-9 min-w-[156px] px-4 inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap leading-none align-middle";
+    "h-9 px-4 inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap";
 
-  const BTN_PRIMARY = `${BTN_BASE} text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-105 focus:outline-none focus:ring-0 shadow-none transform-none transition-colors`;
+  const BTN_PRIMARY = `${BTN_BASE} text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-105`;
 
-  const BTN_OUTLINE_BLUE = `${BTN_BASE} text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 transition`;
+  const BTN_OUTLINE_BLUE = `${BTN_BASE} text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100`;
 
-  const BTN_OUTLINE_GRAY = `${BTN_BASE} text-gray-700 border border-gray-300 hover:border-gray-400 bg-white transition`;
+  const BTN_OUTLINE_GRAY = `${BTN_BASE} text-gray-700 border border-gray-300 hover:border-gray-400 bg-white`;
 
   const BTN_DISABLED = `${BTN_BASE} text-gray-500 border border-gray-200 bg-gray-100 cursor-not-allowed`;
 
+  // ===========================================================
+  // RENDER
+  // ===========================================================
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-6 relative overflow-y-auto max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl p-6 relative overflow-y-auto max-h-[90vh]">
+
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 rounded-md hover:opacity-90 transition"
+          className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 rounded-md hover:opacity-90"
         >
           ✕
         </button>
@@ -94,6 +165,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
         <h2 className="text-xl font-semibold text-gray-900 mb-1">
           Applications for “{job.title}”
         </h2>
+
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-5">
           <span
             className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -104,137 +176,152 @@ export default function ViewApplicationsModal({ job, onClose }) {
           >
             {job.status}
           </span>
+
           <span>
-            {applications.length} application{applications.length !== 1 && "s"}
+            {applications.length} applicant
+            {applications.length !== 1 && "s"}
           </span>
         </div>
 
-        {/* Content */}
-        {loading ? (
-          <p className="text-gray-500 text-sm">Loading applications...</p>
-        ) : applications.length === 0 ? (
-          <p className="text-gray-500 text-sm">No applications yet.</p>
-        ) : (
-          <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
-            {applications.map((app, idx) => (
-              <div
-                key={app.id}
-                className={`flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-3 ${
-                  idx % 2 === 0 ? "bg-gray-50/50" : "bg-white"
-                }`}
-              >
-                {/* LEFT */}
-<div className="flex items-center gap-3 w-full sm:w-2/3">
-  {/* Avatar */}
-  {app.qualified_architechs?.headshot_url ? (
-    <img
-      src={app.qualified_architechs.headshot_url}
-      alt={`${app.first_name} ${app.last_name}`}
-      className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
-    />
+        {/* TABLE */}
+        {!loading && applications.length > 0 && (
+          <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium text-gray-700">Architech</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-700">Status</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-700">Application Stage</th>
+                <th className="px-6 py-3 text-center font-medium text-gray-700">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-200">
+              {applications.map((app) => (
+                <tr key={app.id} className="bg-white">
+                  {/* ARCHITECH INFO */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {app.qualified_architechs?.headshot_url ? (
+                        <img
+                          src={app.qualified_architechs.headshot_url}
+                          alt="avatar"
+                          className="w-10 h-10 rounded-full object-cover border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <FiUser className="text-gray-500" />
+                        </div>
+                      )}
+
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          {app.first_name} {app.last_name}
+                        </div>
+                        <div className="text-sm text-gray-600">{app.email}</div>
+
+                        <div className="flex flex-col text-xs text-gray-500 mt-1">
+                          <div className="flex items-center gap-1">
+                            <FiDollarSign className="text-gray-400" /> Bid:{" "}
+                            <span className="font-medium text-blue-600">
+                              ${app.bid_rate}/hr
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <FiClock className="text-gray-400" />
+                            Applied on{" "}
+                            {new Date(app.applied_at).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </div>
+                        </div>
+
+                        {app.supporting_links && (
+                          <div className="mt-1 text-xs text-gray-600 flex items-start gap-1">
+                            <FiLink className="text-gray-400 mt-[2px]" />
+                            {app.supporting_links}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+{/* ARCHITECH STATUS (with "submitted for another client" rule) */}
+<td className="px-6 py-4">
+  {app.qualified_architechs?.status === "submitted" &&
+  app.application_stage === "applied" ? (
+<span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
+  Submitted for another client
+</span>
+
   ) : (
-    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-base flex-shrink-0">
-      <FiUser />
-    </div>
+    renderArchitechStatusPill(app.qualified_architechs?.status)
   )}
+</td>
 
-  {/* Name + Email */}
-  <div className="flex flex-col">
-    <span className="font-semibold text-gray-900 leading-tight">
-      {app.first_name} {app.last_name}
-    </span>
-    <span className="text-gray-600 text-sm leading-tight">
-      {app.email}
-    </span>
-
-    <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
-      <span className="flex items-center gap-1">
-        <FiDollarSign className="text-gray-400" />
-        <span>
-          Bid Rate:{" "}
-          <span className="font-medium text-blue-600">
-            ${app.bid_rate || "N/A"}/hr
-          </span>
-        </span>
-      </span>
-      <span className="flex items-center gap-1">
-        <FiClock className="text-gray-400" />
-        Applied on{" "}
-        {app.applied_at
-          ? new Date(app.applied_at).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })
-          : "N/A"}
-      </span>
-    </div>
-
-    {app.supporting_links && (
-      <div className="mt-1 text-xs text-gray-600 flex items-start gap-1">
-        <FiLink className="text-gray-400 mt-[2px]" />
-        <span className="leading-snug break-words">
-          {app.supporting_links}
-        </span>
-      </div>
-    )}
-  </div>
-</div>
+{/* APPLICATION STAGE (always normal pill) */}
+<td className="px-6 py-4">
+  {renderApplicationStagePill(app.application_stage)}
+</td>
 
 
-                {/* RIGHT (Buttons) */}
-                <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
-                  {app.profile_url ? (
+                  {/* ACTIONS */}
+                  <td className="px-6 py-4 text-center flex justify-center gap-2">
+                    {app.profile_url ? (
+                      <a
+                        href={app.profile_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={BTN_OUTLINE_BLUE}
+                      >
+                        <FiExternalLink className="mr-1" /> Profile
+                      </a>
+                    ) : app.qualified_architechs?.ai_profile_copy ? (
+                      <button
+                        onClick={() => handleGenerateProfile(app)}
+                        className={BTN_PRIMARY}
+                      >
+                        Generate
+                      </button>
+                    ) : (
+                      <button disabled className={BTN_DISABLED}>
+                        Not Ready
+                      </button>
+                    )}
+
                     <a
-                      href={app.profile_url}
+                      href={`/admin/candidates?email=${encodeURIComponent(app.email)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className={BTN_OUTLINE_BLUE}
+                      className={BTN_OUTLINE_GRAY}
                     >
-                      <FiExternalLink className="w-4 h-4 mr-1" />
-                      View Profile
+                      View
                     </a>
-                  ) : app.qualified_architechs?.ai_profile_copy ? (
-                    <button
-                      onClick={() => handleGenerateProfile(app)}
-                      className={BTN_PRIMARY}
-                    >
-                      Generate Profile
-                    </button>
-                  ) : (
-                    <button disabled className={BTN_DISABLED}>
-                      Profile Not Ready
-                    </button>
-                  )}
-
-                  <a
-                    href={`/admin/candidates?email=${encodeURIComponent(
-                      app.email
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={BTN_OUTLINE_GRAY}
-                  >
-                    View Architech
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
-        {/* Footer */}
+        {/* EMPTY STATE */}
+        {!loading && applications.length === 0 && (
+          <p className="text-gray-500 text-sm">No applications found.</p>
+        )}
+
+        {/* FOOTER */}
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-sm shadow hover:opacity-90 transition"
+            className="px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold"
           >
             Close
           </button>
         </div>
       </div>
 
-      {/* Confirm Modal */}
+      {/* CONFIRM MODAL */}
       {confirmModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-center">
@@ -246,9 +333,8 @@ export default function ViewApplicationsModal({ job, onClose }) {
               <strong>
                 {selectedApp?.first_name} {selectedApp?.last_name}
               </strong>{" "}
-              as{" "}
-              <span className="text-blue-600 font-medium">Top 5 selected</span>{" "}
-              and open their client-facing profile in a new tab.
+              as <span className="text-blue-600 font-medium">submitted to client</span>{" "}
+              and open their client-facing profile.
             </p>
             <div className="flex justify-center gap-3">
               <button
