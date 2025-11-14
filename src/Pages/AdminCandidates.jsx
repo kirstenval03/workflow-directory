@@ -10,9 +10,10 @@ export default function AdminCandidates() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Filter + Sort controls
-  const [showOnlyApplied, setShowOnlyApplied] = useState(false);
-  const [sortByRecent, setSortByRecent] = useState(false);
+  // NEW FILTERS
+  const [statusFilter, setStatusFilter] = useState("all"); // ❗ single-select
+  const [filterNoProfile, setFilterNoProfile] = useState(false);
+  const [filterNoHeadshot, setFilterNoHeadshot] = useState(false);
 
   // Applications modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,7 +47,7 @@ export default function AdminCandidates() {
         availability,
         created_at,
         headshot_url,
-        stage,
+        status,
         resume,
         interview_transcript,
         ai_profile_copy,
@@ -77,29 +78,27 @@ export default function AdminCandidates() {
       return acc;
     }, {});
 
-const merged = architechsData.map((a) => ({
-  id: a.id,
-  name: a.full_name,
-  email: a.email,
-  location: a.current_location,
-  availability: a.availability,
-  created_at: a.created_at,
-  headshot_url: a.headshot_url,
-  stage: a.stage,
-  resume: a.resume,
-  interview_transcript: a.interview_transcript,
-  ai_profile_copy: a.ai_profile_copy,
-  slug: a.slug,
-  applicationsCount: appStats[a.id]?.count || 0,
-  lastApplied: appStats[a.id]?.lastApplied || null,
-}));
+    const merged = architechsData.map((a) => ({
+      id: a.id,
+      name: a.full_name,
+      email: a.email,
+      location: a.current_location,
+      availability: a.availability,
+      created_at: a.created_at,
+      headshot_url: a.headshot_url,
+      status: a.status,
+      resume: a.resume,
+      interview_transcript: a.interview_transcript,
+      ai_profile_copy: a.ai_profile_copy,
+      slug: a.slug,
+      applicationsCount: appStats[a.id]?.count || 0,
+      lastApplied: appStats[a.id]?.lastApplied || null,
+    }));
 
-// ✅ Default alphabetical sorting
-const sorted = merged.sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = merged.sort((a, b) => a.name.localeCompare(b.name));
 
-setCandidates(sorted);
-setLoading(false);
-
+    setCandidates(sorted);
+    setLoading(false);
   };
 
   // ==========================
@@ -130,6 +129,28 @@ setLoading(false);
     }, 600);
   }, [candidates]);
 
+  // ==========================
+  // STATUS PILL
+  // ==========================
+  const renderStatusPill = (status) => {
+    if (!status) return "—";
+
+    const styles = {
+      active: "bg-green-100 text-green-800 border border-green-200",
+      submitted: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+      placed: "bg-blue-100 text-blue-800 border border-blue-200",
+      inactive: "bg-gray-200 text-gray-700 border border-gray-300",
+      disqualified: "bg-red-100 text-red-800 border border-red-200",
+    };
+
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${styles[status]}`}
+      >
+        {status.replace("_", " ")}
+      </span>
+    );
+  };
   // ==========================
   // APPLICATIONS MODAL
   // ==========================
@@ -206,21 +227,33 @@ setLoading(false);
   };
 
   // ==========================
-  // FILTERING + SORTING
+  // FILTERING LOGIC
   // ==========================
-  let filteredCandidates = candidates.filter((cand) =>
+  let filteredCandidates = [...candidates];
+
+  // TEXT SEARCH
+  filteredCandidates = filteredCandidates.filter((cand) =>
     `${cand.name} ${cand.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (showOnlyApplied) {
+  // STATUS FILTER (single-select)
+  if (statusFilter !== "all") {
     filteredCandidates = filteredCandidates.filter(
-      (cand) => cand.applicationsCount > 0
+      (cand) => cand.status === statusFilter
     );
   }
 
-  if (sortByRecent) {
-    filteredCandidates = [...filteredCandidates].sort(
-      (a, b) => (b.lastApplied || 0) - (a.lastApplied || 0)
+  // WITHOUT PROFILE
+  if (filterNoProfile) {
+    filteredCandidates = filteredCandidates.filter(
+      (cand) => !cand.ai_profile_copy
+    );
+  }
+
+  // WITHOUT HEADSHOT
+  if (filterNoHeadshot) {
+    filteredCandidates = filteredCandidates.filter(
+      (cand) => !cand.headshot_url
     );
   }
 
@@ -251,6 +284,8 @@ setLoading(false);
 
         {/* 🔍 Search + Filter Controls */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+
+          {/* SEARCH */}
           <input
             type="text"
             placeholder="Search by name or email..."
@@ -259,33 +294,51 @@ setLoading(false);
             className="w-full md:w-1/2 border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
 
-          {/* 🔘 Filter & Sort Toggles */}
-          <div className="flex items-center gap-3">
+          {/* FILTERS */}
+          <div className="flex flex-wrap items-center gap-3">
+
+            {/* STATUS DROPDOWN */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 bg-white shadow-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="submitted">Submitted</option>
+              <option value="placed">Placed</option>
+              <option value="inactive">Inactive</option>
+              <option value="disqualified">Disqualified</option>
+            </select>
+
+            {/* WITHOUT PROFILE */}
             <button
-              onClick={() => setShowOnlyApplied((prev) => !prev)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all shadow-sm ${
-                showOnlyApplied
+              onClick={() => setFilterNoProfile((prev) => !prev)}
+              className={`px-4 py-2 rounded-md text-sm font-medium border shadow-sm transition-all ${
+                filterNoProfile
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
-              {showOnlyApplied ? "✅ Showing Only Applied" : "🧩 Show Only Applied"}
+              {filterNoProfile ? "📄 All" : "📄 Without Profile"}
             </button>
 
+            {/* WITHOUT HEADSHOT */}
             <button
-              onClick={() => setSortByRecent((prev) => !prev)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all shadow-sm ${
-                sortByRecent
+              onClick={() => setFilterNoHeadshot((prev) => !prev)}
+              className={`px-4 py-2 rounded-md text-sm font-medium border shadow-sm transition-all ${
+                filterNoHeadshot
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
-              {sortByRecent ? "🔄 Sorted by Latest" : "⏰ Sort by Latest"}
+              {filterNoHeadshot ? "👤 All" : "👤 Without Headshot"}
             </button>
+
           </div>
         </div>
 
-        {/* Table */}
+        {/* TABLE */}
         {loading ? (
           <p>Loading candidates...</p>
         ) : (
@@ -297,15 +350,15 @@ setLoading(false);
                     Architech
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Stage
+                    Status
                   </th>
-                  <th className="px-6 py-3 text-center font-medium text-gray-600">
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">
                     Applications
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-gray-600">
                     Profile Generated
                   </th>
-                  <th className="px-6 py-3 text-right font-medium text-gray-600">
+                  <th className="px-6 py-3 text-center font-medium text-gray-600">
                     Action
                   </th>
                 </tr>
@@ -318,78 +371,81 @@ setLoading(false);
                     data-email={cand.email.toLowerCase()}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    {/* Avatar + Name */}
-<td className="px-6 py-4">
-  <div className="flex items-center gap-3">
-    {/* Avatar */}
-    {cand.headshot_url ? (
-      <img
-        src={cand.headshot_url}
-        alt={cand.name}
-        onError={(e) => (e.target.src = "/placeholder-avatar.png")}
-        className="w-10 h-10 rounded-full object-cover border border-gray-200"
-      />
-    ) : (
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
-        {cand.name?.[0]?.toUpperCase() || "?"}
-      </div>
-    )}
+                    {/* Avatar */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {cand.headshot_url ? (
+                          <img
+                            src={cand.headshot_url}
+                            alt={cand.name}
+                            onError={(e) =>
+                              (e.target.src = "/placeholder-avatar.png")
+                            }
+                            className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+                            {cand.name?.[0]?.toUpperCase() || "?"}
+                          </div>
+                        )}
 
-    {/* Name + Email */}
-    <div className="flex flex-col">
-      <span className="font-semibold text-gray-800">
-        {cand.name || "—"}
-      </span>
-      <span className="text-gray-500 text-xs">{cand.email}</span>
-    </div>
-  </div>
-</td>
-
-
-                    {/* Stage */}
-                    <td className="px-6 py-3 text-gray-700">
-                      {cand.stage || "—"}
+                        {/* Name + Email */}
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-gray-800">
+                            {cand.name || "—"}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            {cand.email}
+                          </span>
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Applications */}
+                    {/* STATUS */}
+                    <td className="px-6 py-3">
+                      {renderStatusPill(cand.status)}
+                    </td>
+
+                    {/* APPLICATION COUNT */}
                     <td className="px-6 py-3 text-center">
                       <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
                         {cand.applicationsCount}
                       </span>
                     </td>
 
-                    {/* Profile Generated */}
-<td className="px-6 py-3 text-gray-700">
-  {cand.ai_profile_copy ? (
-    <a
-      href={`/admin/profile/${cand.id}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-blue-600 font-medium underline hover:text-blue-800"
-    >
-      View Profile
-    </a>
-  ) : (
-    <div className="space-y-1 text-sm">
-      <div className="flex items-center gap-1">
-        <span>{cand.resume ? "✔️" : "❌"}</span>
-        <span>Resume</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <span>{cand.interview_transcript ? "✔️" : "❌"}</span>
-        <span>Interview Transcript</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <span>{cand.availability ? "✔️" : "❌"}</span>
-        <span>Availability</span>
-      </div>
-    </div>
-  )}
-</td>
+                    {/* PROFILE GENERATED */}
+                    <td className="px-6 py-3 text-gray-700">
+                      {cand.ai_profile_copy ? (
+                        <a
+                          href={`/admin/profile/${cand.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 font-medium underline hover:text-blue-800"
+                        >
+                          View Profile
+                        </a>
+                      ) : (
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center gap-1">
+                            <span>{cand.resume ? "✔️" : "❌"}</span>
+                            <span>Resume</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>
+                              {cand.interview_transcript ? "✔️" : "❌"}
+                            </span>
+                            <span>Interview Transcript</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>{cand.availability ? "✔️" : "❌"}</span>
+                            <span>Availability</span>
+                          </div>
+                        </div>
+                      )}
+                    </td>
 
-                    {/* Actions */}
+                    {/* ACTIONS */}
                     <td className="px-6 py-3 text-right flex gap-2 justify-end">
-                      {/* View Applications */}
                       <button
                         onClick={() => openModal(cand)}
                         className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium shadow-sm hover:opacity-90 transition-all"
@@ -398,7 +454,6 @@ setLoading(false);
                         View Applications
                       </button>
 
-                      {/* View Details */}
                       <button
                         onClick={() => openDetailsModal(cand)}
                         className="flex items-center justify-center bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-200 transition-all"
@@ -422,9 +477,7 @@ setLoading(false);
         )}
       </div>
 
-      {/* =====================
-          APPLICATIONS MODAL
-      ====================== */}
+      {/* APPLICATIONS MODAL */}
       <Dialog open={modalOpen} onClose={closeModal} className="relative z-50">
         <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -500,9 +553,7 @@ setLoading(false);
         </div>
       </Dialog>
 
-      {/* =====================
-          DETAILS MODAL
-      ====================== */}
+      {/* DETAILS MODAL */}
       <ArchitechDetailsModal
         isOpen={detailsOpen}
         onClose={() => setDetailsOpen(false)}
