@@ -6,6 +6,7 @@ import {
   FiDollarSign,
   FiUser,
   FiLink,
+  FiCopy,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 
@@ -55,7 +56,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
   };
 
   // ===========================================================
-  // GENERATE PROFILE
+  // GENERATE PROFILE → SELECTED
   // ===========================================================
   const confirmGenerateProfile = async () => {
     if (!selectedApp) return;
@@ -139,12 +140,41 @@ export default function ViewApplicationsModal({ job, onClose }) {
     "h-9 px-4 inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap";
 
   const BTN_PRIMARY = `${BTN_BASE} text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-105`;
-
   const BTN_OUTLINE_BLUE = `${BTN_BASE} text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100`;
-
   const BTN_OUTLINE_GRAY = `${BTN_BASE} text-gray-700 border border-gray-300 hover:border-gray-400 bg-white`;
-
   const BTN_DISABLED = `${BTN_BASE} text-gray-500 border border-gray-200 bg-gray-100 cursor-not-allowed`;
+
+  // ===========================================================
+  // SELECTED CANDIDATES (TOP TABLE)
+  // ===========================================================
+  const selectedForClient = applications.filter(
+    (app) =>
+      app.qualified_architechs?.status === "submitted" &&
+      app.application_stage === "submitted_to_client"
+  );
+
+  const handleCopySelected = () => {
+  if (selectedForClient.length === 0) return;
+
+  const base =
+    process.env.REACT_APP_PUBLIC_SITE_URL || window.location.origin;
+
+  const lines = selectedForClient.map((app) => {
+    const first = app.first_name?.trim() || "";
+    const lastInitial = app.last_name?.trim()?.[0]?.toUpperCase() || "";
+    const shortName = lastInitial ? `${first} ${lastInitial}.` : first;
+
+    const url =
+      app.profile_url ||
+      `${base.replace(/\/$/, "")}/client/profile/${app.id}`;
+
+    return `${shortName}: ${url}`;
+  });
+
+  navigator.clipboard.writeText(lines.join("\n"));
+  toast.success("Copied selected candidates!");
+};
+
 
   // ===========================================================
   // RENDER
@@ -183,7 +213,115 @@ export default function ViewApplicationsModal({ job, onClose }) {
           </span>
         </div>
 
-        {/* TABLE */}
+        {/* ===================================================== */}
+        {/* SELECTED CANDIDATES TABLE (TOP) */}
+        {/* ===================================================== */}
+        {selectedForClient.length > 0 && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-4">
+<div className="flex items-center justify-between mb-3">
+  <h3 className="text-md font-semibold text-blue-800">
+    Selected Candidates ({selectedForClient.length})
+  </h3>
+
+  <button
+    onClick={handleCopySelected}
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
+               bg-blue-600 text-white rounded-md shadow-sm 
+               hover:bg-blue-700 active:scale-[.98] transition-all"
+  >
+    <FiCopy className="text-white text-sm" />
+    Copy
+  </button>
+</div>
+
+
+            <table className="w-full text-sm border border-blue-200 rounded-lg overflow-hidden">
+              <thead className="bg-blue-100 border-b border-blue-200">
+                <tr>
+                  <th className="px-6 py-3 text-left font-medium text-blue-900">Architech</th>
+                  <th className="px-6 py-3 text-left font-medium text-blue-900">Status</th>
+                  <th className="px-6 py-3 text-left font-medium text-blue-900">Application Stage</th>
+                  <th className="px-6 py-3 text-center font-medium text-blue-900">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-blue-200">
+                {selectedForClient.map((app) => (
+                  <tr key={app.id} className="bg-blue-50/80">
+
+                    {/* ARCHITECH INFO */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {app.qualified_architechs?.headshot_url ? (
+                          <img
+                            src={app.qualified_architechs.headshot_url}
+                            alt="avatar"
+                            className="w-10 h-10 rounded-full object-cover border"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <FiUser className="text-gray-500" />
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            {app.first_name} {app.last_name}
+                          </div>
+                          <div className="text-sm text-gray-600">{app.email}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* STATUS PILL */}
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white whitespace-nowrap">
+                        Submitted for this client
+                      </span>
+                    </td>
+
+                    {/* APPLICATION STAGE */}
+                    <td className="px-6 py-4">
+                      {renderApplicationStagePill(app.application_stage)}
+                    </td>
+
+                    {/* ACTIONS */}
+                    <td className="px-6 py-4 text-center flex justify-center gap-2">
+                      <a
+                        href={`/admin/candidates?open=${app.email}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={BTN_OUTLINE_GRAY}
+                      >
+                        View
+                      </a>
+
+                      {app.profile_url ? (
+                        <a
+                          href={app.profile_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={BTN_OUTLINE_BLUE}
+                        >
+                          <FiExternalLink className="mr-1" /> Profile
+                        </a>
+                      ) : (
+                        <button disabled className={BTN_DISABLED}>
+                          Not Ready
+                        </button>
+                      )}
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ===================================================== */}
+        {/* FULL TABLE (ALL APPLICANTS) */}
+        {/* ===================================================== */}
         {!loading && applications.length > 0 && (
           <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
             <thead className="bg-gray-50 border-b">
@@ -198,6 +336,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
             <tbody className="divide-y divide-gray-200">
               {applications.map((app) => (
                 <tr key={app.id} className="bg-white">
+
                   {/* ARCHITECH INFO */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -247,37 +386,47 @@ export default function ViewApplicationsModal({ job, onClose }) {
                     </div>
                   </td>
 
-{/* ARCHITECH STATUS (with "submitted for another client" rule) */}
-<td className="px-6 py-4">
-  {/* Submitted for ANOTHER client */}
-  {app.qualified_architechs?.status === "submitted" &&
-   app.application_stage === "applied" ? (
-    <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
-      Submitted for another client
-    </span>
+                  {/* STATUS COLUMN */}
+                  <td className="px-6 py-4">
 
-  /* Submitted for THIS client */
-  ) : app.qualified_architechs?.status === "submitted" &&
-    app.application_stage === "submitted_to_client" ? (
-<span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white whitespace-nowrap">
-  Submitted for this client
-</span>
+                    {/* Submitted for ANOTHER client */}
+                    {app.qualified_architechs?.status === "submitted" &&
+                    app.application_stage === "applied" ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
+                        Submitted for another client
+                      </span>
 
+                    /* Submitted for THIS client */
+                    ) : app.qualified_architechs?.status === "submitted" &&
+                      app.application_stage === "submitted_to_client" ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white whitespace-nowrap">
+                        Submitted for this client
+                      </span>
 
-  /* Default behavior */
-  ) : (
-    renderArchitechStatusPill(app.qualified_architechs?.status)
-  )}
-</td>
+                    ) : (
+                      renderArchitechStatusPill(app.qualified_architechs?.status)
+                    )}
+                  </td>
 
-{/* APPLICATION STAGE (always normal pill) */}
-<td className="px-6 py-4">
-  {renderApplicationStagePill(app.application_stage)}
-</td>
-
+                  {/* APPLICATION STAGE */}
+                  <td className="px-6 py-4">
+                    {renderApplicationStagePill(app.application_stage)}
+                  </td>
 
                   {/* ACTIONS */}
                   <td className="px-6 py-4 text-center flex justify-center gap-2">
+
+                    {/* VIEW FIRST */}
+                    <a
+                      href={`/admin/candidates?open=${app.email}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={BTN_OUTLINE_GRAY}
+                    >
+                      View
+                    </a>
+
+                    {/* PROFILE / SELECT / NOT READY */}
                     {app.profile_url ? (
                       <a
                         href={app.profile_url}
@@ -292,24 +441,15 @@ export default function ViewApplicationsModal({ job, onClose }) {
                         onClick={() => handleGenerateProfile(app)}
                         className={BTN_PRIMARY}
                       >
-                        Generate
+                        Select
                       </button>
                     ) : (
                       <button disabled className={BTN_DISABLED}>
                         Not Ready
                       </button>
                     )}
-
-<a
-  href={`/admin/candidates?open=${app.email}`}
-  target="_blank"
-  rel="noreferrer"
-  className={BTN_OUTLINE_GRAY}
->
-  View
-</a>
-
                   </td>
+
                 </tr>
               ))}
             </tbody>
