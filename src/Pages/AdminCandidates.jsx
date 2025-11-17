@@ -129,6 +129,25 @@ export default function AdminCandidates() {
     }, 600);
   }, [candidates]);
 
+
+  // ==========================
+// AUTO-OPEN DETAILS MODAL ?open=email
+// ==========================
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const openEmail = params.get("open");
+  if (!openEmail || candidates.length === 0) return;
+
+  // Find the candidate by email
+  const cand = candidates.find(
+    (c) => c.email.toLowerCase() === openEmail.toLowerCase()
+  );
+
+  if (cand) {
+    openDetailsModal(cand); // opens modal + fetches full details
+  }
+}, [candidates]);
+
   // ==========================
   // STATUS PILL
   // ==========================

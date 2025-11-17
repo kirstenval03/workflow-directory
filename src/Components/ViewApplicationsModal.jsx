@@ -249,12 +249,22 @@ export default function ViewApplicationsModal({ job, onClose }) {
 
 {/* ARCHITECH STATUS (with "submitted for another client" rule) */}
 <td className="px-6 py-4">
+  {/* Submitted for ANOTHER client */}
   {app.qualified_architechs?.status === "submitted" &&
-  app.application_stage === "applied" ? (
-<span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
-  Submitted for another client
+   app.application_stage === "applied" ? (
+    <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
+      Submitted for another client
+    </span>
+
+  /* Submitted for THIS client */
+  ) : app.qualified_architechs?.status === "submitted" &&
+    app.application_stage === "submitted_to_client" ? (
+<span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white whitespace-nowrap">
+  Submitted for this client
 </span>
 
+
+  /* Default behavior */
   ) : (
     renderArchitechStatusPill(app.qualified_architechs?.status)
   )}
@@ -290,14 +300,15 @@ export default function ViewApplicationsModal({ job, onClose }) {
                       </button>
                     )}
 
-                    <a
-                      href={`/admin/candidates?email=${encodeURIComponent(app.email)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={BTN_OUTLINE_GRAY}
-                    >
-                      View
-                    </a>
+<a
+  href={`/admin/candidates?open=${app.email}`}
+  target="_blank"
+  rel="noreferrer"
+  className={BTN_OUTLINE_GRAY}
+>
+  View
+</a>
+
                   </td>
                 </tr>
               ))}

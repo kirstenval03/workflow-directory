@@ -1,9 +1,19 @@
 import { Dialog } from "@headlessui/react";
-import { FiX, FiLink, FiUpload, FiExternalLink } from "react-icons/fi";
+import {
+  FiX,
+  FiUpload,
+  FiExternalLink,
+  FiCopy,
+  FiLink,
+} from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 
-export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
+export default function ArchitechDetailsModal({
+  isOpen,
+  onClose,
+  architech,
+}) {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(architech?.headshot_url || null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -29,9 +39,16 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
     });
   };
 
-  // =======================
-  // Handle Upload + Preview
-  // =======================
+  // -------------------------
+  // Copy Email
+  // -------------------------
+  const copyEmail = () => {
+    navigator.clipboard.writeText(architech.email);
+  };
+
+  // -------------------------
+  // Upload Photo
+  // -------------------------
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -47,13 +64,16 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
         const parts = architech.headshot_url.split("/architech-headshots/");
         if (parts.length > 1) {
           const oldPath = parts[1];
-          await supabase.storage.from("architech-headshots").remove([oldPath]);
+          await supabase.storage
+            .from("architech-headshots")
+            .remove([oldPath]);
         }
       }
 
       const { error } = await supabase.storage
         .from("architech-headshots")
         .upload(filePath, file, { upsert: true });
+
       if (error) throw error;
 
       const { data: publicUrlData } = supabase.storage
@@ -78,9 +98,9 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
     }
   };
 
-  // =======================
-  // Handle Generate AI Profile
-  // =======================
+  // -------------------------
+  // Generate AI Profile
+  // -------------------------
   const handleGenerateProfile = async () => {
     try {
       setLoadingProfile(true);
@@ -96,8 +116,6 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
         database_technologies: architech.database_technologies,
       };
 
-      console.log("Sending payload to n8n:", payload);
-
       const webhookUrl =
         "https://aiarchitech.app.n8n.cloud/webhook/20edebe2-327c-4213-b247-1da4cc046ec7";
 
@@ -109,140 +127,186 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
 
       if (!response.ok) throw new Error("Webhook call failed");
 
-      alert(
-        "✅ Data sent to n8n! The AI profile copy will be added to Supabase once generated."
-      );
+      alert("Data sent to n8n!");
 
-      // Optional polling
       const start = Date.now();
-      const timeout = 60000; // 1 minute
+      const timeout = 60000; // 1 min
+
       while (Date.now() - start < timeout) {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("qualified_architechs")
           .select("ai_profile_copy")
           .eq("id", architech.id)
           .single();
 
-        if (error) throw error;
         if (data?.ai_profile_copy) {
           setProfileGenerated(true);
-          alert("✅ AI profile successfully generated!");
+          alert("AI Profile generated!");
           break;
         }
 
         await new Promise((r) => setTimeout(r, 3000));
       }
     } catch (error) {
-      console.error("Error generating AI profile:", error);
-      alert("Something went wrong — check the console for details.");
+      console.error(error);
+      alert("Something went wrong while generating the profile.");
     } finally {
       setLoadingProfile(false);
     }
   };
 
+  // -------------------------
+  // Little UI Helpers
+  // -------------------------
+  const InfoBlock = ({ title, children }) => (
+    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-6">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+
   const InfoRow = ({ label, value }) => (
-    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-100 py-2">
-      <span className="text-gray-500 text-sm">{label}</span>
-      <span className="text-gray-800 text-sm font-medium text-right break-words">
+    <div className="py-1 flex justify-between text-sm border-b border-gray-100">
+      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-800 font-medium text-right">
         {value || "—"}
       </span>
     </div>
   );
 
-  const LinkRow = ({ label, url }) =>
-    url ? (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-between border-b border-gray-100 py-2 text-blue-600 hover:text-blue-800 transition"
-      >
-        <span className="text-sm">{label}</span>
-        <FiLink size={16} />
-      </a>
-    ) : (
-      <div className="flex justify-between items-center border-b border-gray-100 py-2 text-gray-400 text-sm">
-        <span>{label}</span>
-        <span>—</span>
-      </div>
-    );
+  const LinkRow = ({ label, url }) => (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex justify-between py-2 text-sm ${
+        url
+          ? "text-blue-600 hover:text-blue-800 border-b border-gray-100"
+          : "text-gray-400 border-b border-gray-100"
+      }`}
+    >
+      <span>{label}</span>
+      {url ? <FiLink size={15} /> : <span>—</span>}
+    </a>
+  );
+
+  const statusColor = {
+    active: "bg-green-100 text-green-700",
+    submitted: "bg-yellow-100 text-yellow-700",
+    inactive: "bg-gray-100 text-gray-600",
+    unavailable: "bg-red-100 text-red-600",
+  }[architech.status] || "bg-gray-100 text-gray-700";
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="bg-white max-w-3xl w-full rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-5">
+        <Dialog.Panel className="bg-white w-full max-w-3xl rounded-2xl p-6 shadow-xl overflow-y-auto max-h-[90vh]">
+          {/* HEADER */}
+          <div className="flex justify-between mb-5">
             <Dialog.Title className="text-xl font-semibold text-gray-800">
               Architech Profile
             </Dialog.Title>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <FiX size={22} />
             </button>
           </div>
 
-          {/* Profile Header */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-start sm:gap-6 mb-6">
-            <div className="relative w-28 h-28 mb-3 sm:mb-0">
+          {/* TOP SECTION */}
+          <div className="flex flex-col sm:flex-row gap-6 mb-6">
+            {/* Photo */}
+            <div className="relative w-28 h-28">
               <img
                 src={previewUrl || photoUrl || "/placeholder-avatar.png"}
-                alt="Profile"
-                className="w-28 h-28 rounded-full object-cover border border-gray-300"
+                className="w-28 h-28 rounded-full object-cover border"
               />
               {uploading && (
-                <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-full">
+                <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center">
                   <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
             </div>
 
-            <div className="text-center sm:text-left">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {architech.full_name || "Unnamed"}
-              </h2>
-              <p className="text-sm text-gray-600">{architech.email}</p>
+            {/* Info */}
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {architech.full_name}
+                </h2>
+
+                {/* STATUS PILL */}
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}
+                >
+                  {architech.status}
+                </span>
+              </div>
+
+              {/* Email w/ COPY */}
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-gray-600">{architech.email}</p>
+                <button
+                  onClick={copyEmail}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FiCopy size={15} />
+                </button>
+              </div>
+
               <p className="text-sm text-gray-500 mt-1">
-                Became an AI Architech on{" "}
+                Became an AI-Architech on{" "}
                 <span className="font-medium">
                   {formatDate(architech.created_at)}
                 </span>
               </p>
 
-              <label className="inline-flex items-center gap-2 mt-3 cursor-pointer bg-blue-600 text-white px-4 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition">
-                <FiUpload size={14} />
-                {uploading ? "Uploading..." : "Upload New Photo"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </label>
+              {/* ACTION BUTTONS */}
+              <div className="flex gap-3 mt-4 flex-wrap">
+                <label className="inline-flex items-center bg-blue-600 text-white px-4 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-90">
+                  <FiUpload size={14} />
+                  <span className="ml-1">
+                    {uploading ? "Uploading..." : "Upload New Photo"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleUpload}
+                  />
+                </label>
+
+                {!profileGenerated ? (
+                  <button
+                    onClick={handleGenerateProfile}
+                    disabled={loadingProfile}
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-1.5 rounded-md text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loadingProfile ? "Generating..." : "Generate Profile Copy"}
+                  </button>
+                ) : (
+                  <a
+                    href={`/admin/profile/${architech.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-blue-600 text-xs font-medium hover:text-blue-800"
+                  >
+                    <FiExternalLink size={14} />
+                    View AIA Profile
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* General Info */}
-          <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-              General Info
-            </h3>
-            <InfoRow
-              label="Current Location"
-              value={architech.current_location}
-            />
+          {/* GENERAL INFO */}
+          <InfoBlock title="General Info">
+            <InfoRow label="Current Location" value={architech.current_location} />
             <InfoRow label="Availability" value={architech.availability} />
-          </div>
+          </InfoBlock>
 
-          {/* Technical Profile */}
-          <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-              Technical Profile
-            </h3>
+          {/* TECHNICAL PROFILE */}
+          <InfoBlock title="Technical Profile">
             <InfoRow
               label="Programming Languages"
               value={architech.programming_languages}
@@ -259,69 +323,34 @@ export default function ArchitechDetailsModal({ isOpen, onClose, architech }) {
               label="Automation Platforms"
               value={architech.automation_platforms}
             />
-          </div>
+          </InfoBlock>
 
-          {/* Links & Media */}
-          <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-              Links & Media
-            </h3>
+          {/* LINKS */}
+          <InfoBlock title="Links & Media">
             <LinkRow
               label="Resume"
               url={architech.resume_link || architech.resume}
             />
             <LinkRow label="Loom Video" url={architech.loom_video_link} />
             <LinkRow label="GitHub Profile" url={architech.github_profile} />
-          </div>
+          </InfoBlock>
 
-          {/* Recruiter Notes */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-              Recruiter Notes
-            </h3>
+          {/* NOTES */}
+          <InfoBlock title="Recruiter Notes">
             {architech.recruiter_notes ? (
-              <p className="text-gray-700 text-sm whitespace-pre-wrap">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
                 {architech.recruiter_notes}
               </p>
             ) : (
-              <p className="text-gray-400 text-sm italic">No notes available.</p>
+              <p className="text-sm text-gray-400 italic">No notes available.</p>
             )}
-          </div>
+          </InfoBlock>
 
-          {/* AI Profile Generation Button / Status */}
-          <div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            {!profileGenerated ? (
-              <button
-                onClick={handleGenerateProfile}
-                disabled={loadingProfile}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
-              >
-                {loadingProfile ? "Generating..." : "Generate Profile Copy"}
-              </button>
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <p className="text-green-600 font-semibold text-sm">
-                  ✅ Profile Copy Generated
-                </p>
-                <a
-                  href={`/admin/profile/${architech.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  <FiExternalLink size={14} />
-                  Show AIA Profile
-                </a>
-
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="mt-4 text-right">
+          {/* FOOTER */}
+          <div className="text-right mt-4">
             <button
               onClick={onClose}
-              className="bg-gray-200 text-gray-800 px-5 py-2 rounded-lg font-medium hover:bg-gray-300 transition"
+              className="bg-gray-200 text-gray-800 px-5 py-2 rounded-lg font-medium hover:bg-gray-300"
             >
               Close
             </button>
