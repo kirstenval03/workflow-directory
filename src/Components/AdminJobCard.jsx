@@ -70,7 +70,7 @@ export default function AdminJobCard({
             onClick={() => onEdit(job)}
             className="px-4 py-1.5 bg-gradient-to-r from-[#007BFF] to-[#0062E6] text-white rounded font-semibold text-sm shadow-md hover:opacity-90 transition"
           >
-            Edit
+           View Details
           </button>
 
           <button

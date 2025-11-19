@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 
 export default function CreateJobModal({ onClose, onJobCreated }) {
@@ -10,39 +10,68 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+  // NEW: Client selection
+  const [clients, setClients] = useState([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientId, setClientId] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  // Fetch clients
+  useEffect(() => {
+    async function loadClients() {
+      const { data, error } = await supabase
+        .from("client_directory")
+        .select("id, client_name");
 
-    const { error } = await supabase.from("jobs").insert([
-      {
-        title,
-        preview_description: previewDescription,
-        detailed_description: detailedDescription,
-        hourly_pay_range: hourlyPayRange,
-        closing_date: closingDate,
-        status: "open",
-        posted_at: new Date().toISOString(),
-        created_by: user?.id || null, // 👈 attaches current user ID
-      },
-    ]);
+      if (!error) setClients(data);
+    }
+    loadClients();
+  }, []);
 
-    if (error) throw error;
+  const filteredClients = clients.filter((c) =>
+    c.client_name.toLowerCase().includes(clientSearch.toLowerCase())
+  );
 
-    setSuccessMessage("✅ Job created successfully!");
-    await onJobCreated();
-    setTimeout(() => onClose(), 800);
-  } catch (err) {
-    alert("Error creating job: " + err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!clientId) {
+      alert("Please select a client for this job.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { error } = await supabase.from("jobs").insert([
+        {
+          title,
+          preview_description: previewDescription,
+          detailed_description: detailedDescription,
+          hourly_pay_range: hourlyPayRange,
+          closing_date: closingDate,
+          status: "open",
+          posted_at: new Date().toISOString(),
+          created_by: user?.id || null,
+          client_id: clientId, // 👈 VERY IMPORTANT
+        },
+      ]);
+
+      if (error) throw error;
+
+      setSuccessMessage("✅ Job created successfully!");
+      await onJobCreated();
+      setTimeout(() => onClose(), 800);
+    } catch (err) {
+      alert("Error creating job: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
@@ -52,6 +81,57 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* CLIENT DROPDOWN */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Select Client
+            </label>
+<div
+  className="mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer text-gray-900"
+  onClick={() => setDropdownOpen(!dropdownOpen)}
+>
+  {clientId
+    ? clients.find((c) => c.id === clientId)?.client_name
+    : "Search client..."}
+</div>
+
+
+            {dropdownOpen && (
+              <div className="absolute z-50 bg-white border border-gray-300 rounded-lg shadow-xl w-full mt-1 max-h-60 overflow-y-auto">
+<input
+  type="text"
+  placeholder="Search clients..."
+  className="w-full px-3 py-2 border-b border-gray-200 focus:outline-none 
+             text-gray-900 placeholder-gray-500 bg-white"
+  value={clientSearch}
+  onChange={(e) => setClientSearch(e.target.value)}
+/>
+
+
+                {filteredClients.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-gray-500">
+                    No clients found
+                  </div>
+                )}
+
+                {filteredClients.map((c) => (
+<div
+  key={c.id}
+  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-gray-900"
+  onClick={() => {
+    setClientId(c.id);
+    setDropdownOpen(false);
+  }}
+>
+  {c.client_name}
+</div>
+
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Inputs */}
           <Input
             label="Title"
@@ -114,7 +194,7 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
   );
 }
 
-// 🧩 Small input components for cleaner code
+/* INPUT COMPONENT */
 function Input({ label, type, value, setValue, placeholder }) {
   return (
     <div>
@@ -125,12 +205,13 @@ function Input({ label, type, value, setValue, placeholder }) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
       />
     </div>
   );
 }
 
+/* TEXTAREA COMPONENT */
 function Textarea({ label, value, setValue, placeholder }) {
   return (
     <div>
@@ -139,9 +220,9 @@ function Textarea({ label, value, setValue, placeholder }) {
         required
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        rows="4"
+        rows="6"
         placeholder={placeholder}
-        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500"
       ></textarea>
     </div>
   );
