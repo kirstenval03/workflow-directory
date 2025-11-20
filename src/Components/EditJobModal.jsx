@@ -14,6 +14,10 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
   const [interviewDate, setInterviewDate] = useState("");
   const [interviewTime, setInterviewTime] = useState("");
 
+  // NEW — hour/min dropdown state
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("");
+
   const [clientName, setClientName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,8 +32,22 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
 
       setInterviewDate(job.interview_date ? job.interview_date.split("T")[0] : "");
       setInterviewTime(job.interview_time || "");
+
+      // Pre-fill hour/min if time exists
+      if (job.interview_time && job.interview_time.includes(":")) {
+        const [h, m] = job.interview_time.split(":");
+        setHour(h);
+        setMinute(m);
+      }
     }
   }, [job]);
+
+  // Combine hour+minute into HH:mm
+  useEffect(() => {
+    if (hour && minute) {
+      setInterviewTime(`${hour}:${minute}`);
+    }
+  }, [hour, minute]);
 
   // Fetch client name
   useEffect(() => {
@@ -60,7 +78,7 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
           hourly_pay_range: hourlyPayRange,
           closing_date: closingDate,
           interview_date: interviewDate,
-          interview_time: interviewTime,
+          interview_time: interviewTime, // ALWAYS "HH:mm"
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
@@ -69,8 +87,7 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
 
       toast.success("Job updated successfully!");
 
-      await onJobUpdated(job.id); // <-- instantly refresh modal
-
+      await onJobUpdated(job.id);
       setIsEditing(false);
     } catch (err) {
       toast.error("❌ Error updating job");
@@ -84,33 +101,29 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
 
         {/* HEADER */}
-{/* HEADER */}
-<div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 text-white flex justify-between items-center">
-  
-  <h2 className="text-xl font-semibold">
-    {isEditing ? "Edit Job" : "Job Details"}
-  </h2>
+        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 text-white flex justify-between items-center">
+          <h2 className="text-xl font-semibold">
+            {isEditing ? "Edit Job" : "Job Details"}
+          </h2>
 
-  <div className="flex items-center gap-3">
-    {!isEditing && (
-      <button
-        onClick={() => setIsEditing(true)}
-        className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white font-medium transition"
-      >
-        Edit Job
-      </button>
-    )}
+          <div className="flex items-center gap-3">
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white font-medium transition"
+              >
+                Edit Job
+              </button>
+            )}
 
-    <button
-      onClick={onClose}
-      className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-xl text-white text-lg transition"
-    >
-      ✕
-    </button>
-  </div>
-
-</div>
-
+            <button
+              onClick={onClose}
+              className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-xl text-white text-lg transition"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
 
         {/* CONTENT */}
         <div className="p-6 max-h-[80vh] overflow-y-auto">
@@ -118,12 +131,6 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
           {/* VIEW MODE */}
           {!isEditing && (
             <div className="space-y-8">
-
-              {/* TOP RIGHT EDIT BUTTON */}
-              <div className="flex justify-end mb-3">
-              </div>
-
-              {/* INFO CARD */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm">
                 <Detail label="Client" value={clientName} />
                 <Detail label="Title" value={job.title} />
@@ -134,12 +141,10 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
                 <Detail label="Closing Date" value={job.closing_date?.split("T")[0] || ""} />
               </div>
 
-              {/* DESCRIPTION CARD */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 shadow-sm">
                 <Detail label="Detailed Description" value={job.detailed_description} />
               </div>
 
-              {/* CLOSE BUTTON */}
               <div className="flex justify-end">
                 <button
                   onClick={onClose}
@@ -155,7 +160,6 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
           {isEditing && (
             <form onSubmit={handleUpdate} className="space-y-8">
 
-              {/* CARD */}
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-5">
 
                 <div>
@@ -172,18 +176,59 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
                 <Input label="Preview Description" value={previewDescription} setValue={setPreviewDescription} />
                 <Input label="Hourly Pay Range" value={hourlyPayRange} setValue={setHourlyPayRange} />
 
+                {/* Interview Date */}
                 <Input label="Interview Date" type="date" value={interviewDate} setValue={setInterviewDate} />
-                <Input label="Interview Time (Central Time)" type="time" value={interviewTime} setValue={setInterviewTime} />
+
+                {/* Interview Time 24-hour selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Interview Time (Central Time)
+                  </label>
+
+                  <div className="flex gap-3 mt-1">
+                    {/* Hours */}
+                    <select
+                      value={hour}
+                      onChange={(e) => setHour(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">HH</option>
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return (
+                          <option key={val} value={val}>{val}</option>
+                        );
+                      })}
+                    </select>
+
+                    {/* Minutes */}
+                    <select
+                      value={minute}
+                      onChange={(e) => setMinute(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">MM</option>
+                      {Array.from({ length: 60 }).map((_, i) => {
+                        const val = String(i).padStart(2, "0");
+                        return (
+                          <option key={val} value={val}>{val}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
 
                 <Input label="Closing Date" type="date" value={closingDate} setValue={setClosingDate} />
               </div>
 
-              {/* DESCRIPTION */}
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                <Textarea label="Detailed Description" value={detailedDescription} setValue={setDetailedDescription} />
+                <Textarea
+                  label="Detailed Description"
+                  value={detailedDescription}
+                  setValue={setDetailedDescription}
+                />
               </div>
 
-              {/* ACTIONS */}
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -192,6 +237,7 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -203,6 +249,7 @@ export default function JobDetailsModal({ job, onClose, onJobUpdated }) {
 
             </form>
           )}
+
         </div>
       </div>
     </div>
@@ -245,7 +292,7 @@ function Textarea({ label, value, setValue }) {
         required
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed"
+        className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed"
       ></textarea>
     </div>
   );
