@@ -16,6 +16,9 @@ export default function ViewApplicationsModal({ job, onClose }) {
   const [selectedApp, setSelectedApp] = useState(null);
   const [confirmModal, setConfirmModal] = useState(false);
 
+  // 🔗 YOUR MAKE WEBHOOK URL
+  const MAKE_WEBHOOK_URL = "https://hook.us2.make.com/2zt14fudnri74kc2cj8ytqnhasme7whd";
+
   useEffect(() => {
     if (job?.id) fetchApplications();
   }, [job]);
@@ -153,28 +156,70 @@ export default function ViewApplicationsModal({ job, onClose }) {
       app.application_stage === "submitted_to_client"
   );
 
+  // ===========================================================
+  // COPY BUTTON LOGIC
+  // ===========================================================
   const handleCopySelected = () => {
-  if (selectedForClient.length === 0) return;
+    if (selectedForClient.length === 0) return;
 
-  const base =
-    process.env.REACT_APP_PUBLIC_SITE_URL || window.location.origin;
+    const base =
+      process.env.REACT_APP_PUBLIC_SITE_URL || window.location.origin;
 
-  const lines = selectedForClient.map((app) => {
-    const first = app.first_name?.trim() || "";
-    const lastInitial = app.last_name?.trim()?.[0]?.toUpperCase() || "";
-    const shortName = lastInitial ? `${first} ${lastInitial}.` : first;
+    const lines = selectedForClient.map((app) => {
+      const first = app.first_name?.trim() || "";
+      const lastInitial = app.last_name?.trim()?.[0]?.toUpperCase() || "";
+      const shortName = lastInitial ? `${first} ${lastInitial}.` : first;
 
-    const url =
-      app.profile_url ||
-      `${base.replace(/\/$/, "")}/client/profile/${app.id}`;
+      const url =
+        app.profile_url ||
+        `${base.replace(/\/$/, "")}/client/profile/${app.id}`;
 
-    return `${shortName}: ${url}`;
-  });
+      return `${shortName}: ${url}`;
+    });
 
-  navigator.clipboard.writeText(lines.join("\n"));
-  toast.success("Copied selected candidates!");
-};
+    navigator.clipboard.writeText(lines.join("\n"));
+    toast.success("Copied selected candidates!");
+  };
 
+  // ===========================================================
+  // SEND INTERVIEW INVITES
+  // ===========================================================
+  const handleSendInterviewInvites = async () => {
+    if (selectedForClient.length === 0) {
+      toast.error("No selected candidates to send invites.");
+      return;
+    }
+
+    if (!job.interview_date || !job.interview_time) {
+      toast.error("Interview date or time missing in job settings.");
+      return;
+    }
+
+    const payload = {
+      job_id: job.id,
+      interview_date: job.interview_date,
+      interview_time: job.interview_time,
+      candidates: selectedForClient.map((app) => ({
+        name: `${app.first_name} ${app.last_name}`,
+        email: app.email,
+      })),
+    };
+
+    try {
+      const res = await fetch(MAKE_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Webhook request failed");
+
+      toast.success("Interview invites sent!");
+    } catch (err) {
+      console.error("Webhook error:", err);
+      toast.error("Failed to send invites");
+    }
+  };
 
   // ===========================================================
   // RENDER
@@ -214,27 +259,42 @@ export default function ViewApplicationsModal({ job, onClose }) {
         </div>
 
         {/* ===================================================== */}
-        {/* SELECTED CANDIDATES TABLE (TOP) */}
+        {/* SELECTED CANDIDATES TABLE */}
         {/* ===================================================== */}
         {selectedForClient.length > 0 && (
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-4">
-<div className="flex items-center justify-between mb-3">
-  <h3 className="text-md font-semibold text-blue-800">
-    Selected Candidates ({selectedForClient.length})
-  </h3>
 
-  <button
-    onClick={handleCopySelected}
-    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
-               bg-blue-600 text-white rounded-md shadow-sm 
-               hover:bg-blue-700 active:scale-[.98] transition-all"
-  >
-    <FiCopy className="text-white text-sm" />
-    Copy
-  </button>
-</div>
+            {/* Header + Buttons */}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-md font-semibold text-blue-800">
+                Selected Candidates ({selectedForClient.length})
+              </h3>
 
+              <div className="flex items-center gap-2">
+                {/* COPY BUTTON */}
+                <button
+                  onClick={handleCopySelected}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
+                             bg-blue-600 text-white rounded-md shadow-sm 
+                             hover:bg-blue-700 active:scale-[.98] transition-all"
+                >
+                  <FiCopy className="text-white text-sm" />
+                  Copy
+                </button>
 
+                {/* SEND INTERVIEW INVITES */}
+                <button
+                  onClick={handleSendInterviewInvites}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
+                             bg-green-600 text-white rounded-md shadow-sm 
+                             hover:bg-green-700 active:scale-[.98] transition-all"
+                >
+                  📩 Send Interview Invites
+                </button>
+              </div>
+            </div>
+
+            {/* TABLE */}
             <table className="w-full text-sm border border-blue-200 rounded-lg overflow-hidden">
               <thead className="bg-blue-100 border-b border-blue-200">
                 <tr>
@@ -273,7 +333,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
                       </div>
                     </td>
 
-                    {/* STATUS PILL */}
+                    {/* STATUS */}
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white whitespace-nowrap">
                         Submitted for this client
@@ -388,7 +448,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
 
                   {/* STATUS COLUMN */}
                   <td className="px-6 py-4">
-
                     {/* Submitted for ANOTHER client */}
                     {app.qualified_architechs?.status === "submitted" &&
                     app.application_stage === "applied" ? (
@@ -415,8 +474,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
 
                   {/* ACTIONS */}
                   <td className="px-6 py-4 text-center flex justify-center gap-2">
-
-                    {/* VIEW FIRST */}
                     <a
                       href={`/admin/candidates?open=${app.email}`}
                       target="_blank"
@@ -426,7 +483,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
                       View
                     </a>
 
-                    {/* PROFILE / SELECT / NOT READY */}
                     {app.profile_url ? (
                       <a
                         href={app.profile_url}
@@ -485,7 +541,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
                 {selectedApp?.first_name} {selectedApp?.last_name}
               </strong>{" "}
               as <span className="text-blue-600 font-medium">submitted to client</span>{" "}
-              and open their client-facing profile.
+              and open their profile.
             </p>
             <div className="flex justify-center gap-3">
               <button
