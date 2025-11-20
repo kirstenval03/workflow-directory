@@ -10,6 +10,10 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // NEW: Interview fields
+  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewTime, setInterviewTime] = useState("");
+
   // NEW: Client selection
   const [clients, setClients] = useState([]);
   const [clientSearch, setClientSearch] = useState("");
@@ -23,7 +27,7 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
         .from("client_directory")
         .select("id, client_name");
 
-      if (!error) setClients(data);
+      if (!error && data) setClients(data);
     }
     loadClients();
   }, []);
@@ -57,7 +61,9 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
           status: "open",
           posted_at: new Date().toISOString(),
           created_by: user?.id || null,
-          client_id: clientId, // 👈 VERY IMPORTANT
+          client_id: clientId,
+          interview_date: interviewDate,
+          interview_time: interviewTime,
         },
       ]);
 
@@ -74,40 +80,49 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Create New Job
-        </h2>
+ 
+<div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+  <div className="bg-white rounded-xl shadow-lg w-full max-w-3xl relative">
+  <div className="p-6 max-h-[80vh] overflow-y-auto relative">
+
+    {/* CLOSE BUTTON (SCROLLS AWAY WHEN FORM SCROLLS) */}
+    <button
+      onClick={onClose}
+      className="absolute top-0 right-0 m-2 text-gray-400 hover:text-gray-600 transition text-sm font-medium"
+    >
+      ✕
+    </button>
+
+    {/* TITLE */}
+    <h2 className="text-xl font-semibold text-gray-800 mb-4 mt-6">
+      Create New Job
+    </h2>
+
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
           {/* CLIENT DROPDOWN */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700">
               Select Client
             </label>
-<div
-  className="mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer text-gray-900"
-  onClick={() => setDropdownOpen(!dropdownOpen)}
->
-  {clientId
-    ? clients.find((c) => c.id === clientId)?.client_name
-    : "Search client..."}
-</div>
-
+            <div
+              className="mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer text-gray-900"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+            >
+              {clientId
+                ? clients.find((c) => c.id === clientId)?.client_name
+                : "Search client..."}
+            </div>
 
             {dropdownOpen && (
               <div className="absolute z-50 bg-white border border-gray-300 rounded-lg shadow-xl w-full mt-1 max-h-60 overflow-y-auto">
-<input
-  type="text"
-  placeholder="Search clients..."
-  className="w-full px-3 py-2 border-b border-gray-200 focus:outline-none 
-             text-gray-900 placeholder-gray-500 bg-white"
-  value={clientSearch}
-  onChange={(e) => setClientSearch(e.target.value)}
-/>
-
+                <input
+                  type="text"
+                  placeholder="Search clients..."
+                  className="w-full px-3 py-2 border-b border-gray-200 focus:outline-none text-gray-900 placeholder-gray-500 bg-white"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                />
 
                 {filteredClients.length === 0 && (
                   <div className="px-3 py-2 text-sm text-gray-500">
@@ -116,17 +131,16 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
                 )}
 
                 {filteredClients.map((c) => (
-<div
-  key={c.id}
-  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-gray-900"
-  onClick={() => {
-    setClientId(c.id);
-    setDropdownOpen(false);
-  }}
->
-  {c.client_name}
-</div>
-
+                  <div
+                    key={c.id}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-gray-900"
+                    onClick={() => {
+                      setClientId(c.id);
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    {c.client_name}
+                  </div>
                 ))}
               </div>
             )}
@@ -160,11 +174,29 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
             setValue={setHourlyPayRange}
             placeholder="$100–150/hr"
           />
+
+          {/* NEW: Interview date/time */}
+          <Input
+            label="Interview Date"
+            type="date"
+            value={interviewDate}
+            setValue={setInterviewDate}
+            placeholder=""
+          />
+          <Input
+            label="Interview Time (Central Time)"
+            type="time"
+            value={interviewTime}
+            setValue={setInterviewTime}
+            placeholder=""
+          />
+
           <Input
             label="Closing Date"
             type="date"
             value={closingDate}
             setValue={setClosingDate}
+            placeholder=""
           />
 
           {/* Buttons */}
@@ -190,6 +222,7 @@ export default function CreateJobModal({ onClose, onJobCreated }) {
           )}
         </form>
       </div>
+    </div>
     </div>
   );
 }
@@ -220,9 +253,9 @@ function Textarea({ label, value, setValue, placeholder }) {
         required
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        rows="6"
+        rows="10"
         placeholder={placeholder}
-        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500"
+        className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 resize-none leading-relaxed focus:ring-2 focus:ring-blue-500"
       ></textarea>
     </div>
   );

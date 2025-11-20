@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [viewingJob, setViewingJob] = useState(null);
-  const [filter, setFilter] = useState("all"); // 👈 new filter state
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     fetchJobs();
@@ -60,12 +60,35 @@ export default function AdminDashboard() {
       const { count, error } = await supabase
         .from("applications")
         .select("*", { count: "exact", head: true });
+
       if (error) throw error;
       setApplicationsCount(count || 0);
     } catch (err) {
       console.error("Error fetching applications count:", err.message);
     }
   };
+
+  // ────────────────────────────────────────────────
+  // ⚡ LIVE UPDATE FIX — Update selectedJob instantly after saving
+const handleJobUpdated = async (updatedJobId) => {
+  // 1. Refetch latest data for that job only
+  const { data: freshJob, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .eq("id", updatedJobId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching updated job:", error);
+    return;
+  }
+
+  // 2. Update selectedJob immediately → modal refreshes instantly
+  setSelectedJob(freshJob);
+
+  // 3. Refetch entire job list (optional but recommended)
+  await fetchJobs();
+};
 
   // ────────────────────────────────────────────────
   // ⚡ TOGGLE JOB STATUS FUNCTION (close or reopen)
@@ -88,7 +111,7 @@ export default function AdminDashboard() {
         newClosingDate.setDate(newClosingDate.getDate() + 3);
 
         updateData = {
-          status: "open", // 👈 changed from active → open
+          status: "open",
           closing_date: newClosingDate.toISOString().split("T")[0],
           updated_at: new Date().toISOString(),
         };
@@ -121,7 +144,7 @@ export default function AdminDashboard() {
   };
 
   // ────────────────────────────────────────────────
-  // FILTERED JOBS BASED ON STATUS
+  // FILTERED JOBS
   const filteredJobs =
     filter === "all"
       ? jobs
@@ -146,17 +169,18 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Job Positions</h2>
+
           <div className="flex items-center gap-3">
-            {/* 👇 Filter dropdown */}
-          <select
-            className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-          </select>
+            {/* Filter */}
+            <select
+              className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
 
             <button
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -192,7 +216,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Modals */}
+      {/* Create Job Modal */}
       {showCreateModal && (
         <CreateJobModal
           onClose={() => setShowCreateModal(false)}
@@ -200,14 +224,16 @@ export default function AdminDashboard() {
         />
       )}
 
+      {/* EDIT JOB MODAL — NOW SUPPORTS LIVE UPDATES */}
       {selectedJob && (
         <EditJobModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          onJobUpdated={fetchJobs}
+          onJobUpdated={(id) => handleJobUpdated(id)}
         />
       )}
 
+      {/* View Applications */}
       {viewingJob && (
         <ViewApplicationsModal
           job={viewingJob}
