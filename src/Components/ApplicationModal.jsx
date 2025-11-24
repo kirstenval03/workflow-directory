@@ -12,52 +12,49 @@ export default function ApplicationModal({ isOpen, onClose, job }) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    // 1️⃣ Look up the qualified architech by email
-    const { data: architech, error: lookupError } = await supabase
-      .from('qualified_architechs')
-      .select('id, full_name')
-      .eq('email', email)
-      .single();
+    try {
+      const { data: architech, error: lookupError } = await supabase
+        .from('qualified_architechs')
+        .select('id, full_name')
+        .eq('email', email)
+        .single();
 
-    if (lookupError || !architech) {
+      if (lookupError || !architech) {
+        setLoading(false);
+        alert(
+          'This email is not recognized. Please use the same email you used to apply to be an AI Architech, if you have questions please contact us at talents@aiarchitech.com'
+        );
+        return;
+      }
+
+      const { error: insertError } = await supabase.from('applications').insert([
+        {
+          job_id: job.id,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          bid_rate: bidRate,
+          supporting_links: supportingLinks,
+          applied_at: new Date().toISOString(),
+          status: 'new',
+          qualified_architech_id: architech.id,
+        },
+      ]);
+
+      if (insertError) throw insertError;
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Application error:', err);
+      alert('Error submitting your application. Please try again.');
+    } finally {
       setLoading(false);
-      alert(
-        'This email is not recognized. Please use the same email you used to apply to be an AI Architech, if you have questions please contact us at talents@aiarchitech.com'
-      );
-      return;
     }
-
-    // 2️⃣ If found, insert the application with their ID
-    const { error: insertError } = await supabase.from('applications').insert([
-      {
-        job_id: job.id,
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        bid_rate: bidRate,
-        supporting_links: supportingLinks,
-        applied_at: new Date().toISOString(),
-        status: 'new',
-        qualified_architech_id: architech.id, // ✅ new link field
-      },
-    ]);
-
-    if (insertError) throw insertError;
-
-    // 3️⃣ Success state
-    setSubmitted(true);
-  } catch (err) {
-    console.error('Application error:', err);
-    alert('Error submitting your application. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (!job) return null;
 
@@ -72,7 +69,6 @@ const handleSubmit = async (e) => {
       <div className="flex items-center justify-center min-h-screen px-4 py-8">
         <Dialog.Panel className="relative bg-[#0f172a] max-w-3xl w-full p-8 rounded-xl shadow-xl border border-gray-700 text-white">
           
-          {/* Clean, aligned Close Button */}
           {/* Close Button */}
           <button
             onClick={onClose}
@@ -85,14 +81,17 @@ const handleSubmit = async (e) => {
           {/* Job Info */}
           <div className="mb-8 mt-2">
             <h2 className="text-2xl font-semibold mb-2 pr-10">{job.title}</h2>
+
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-3">
               <span className="flex items-center gap-1"><FiDollarSign /> {job.hourly_pay_range}</span>
               <span className="flex items-center gap-1"><FiMapPin /> Remote</span>
               <span className="flex items-center gap-1"><FiClock /> Closes in {daysLeft} days</span>
             </div>
+
             <p className="text-sm text-gray-300 leading-relaxed mb-4 whitespace-pre-line">
               {job.detailed_description}
             </p>
+
             <div className="text-sm text-gray-500 border border-gray-700 rounded px-4 py-2 inline-block">
               <strong className="text-white">Application Deadline:</strong>{' '}
               {closingDate.toLocaleDateString('en-US')} at 11:59pm PT
@@ -120,6 +119,7 @@ const handleSubmit = async (e) => {
                       className="w-full rounded-md bg-gray-800 border border-gray-600 px-3 py-2 text-white"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm mb-1">Last Name *</label>
                     <input
@@ -165,9 +165,7 @@ const handleSubmit = async (e) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-1">
-                    Additional Notes or Resources (Optional)
-                  </label>
+                  <label className="block text-sm mb-1">Additional Notes or Resources (Optional)</label>
                   <textarea
                     value={supportingLinks}
                     onChange={(e) => setSupportingLinks(e.target.value)}

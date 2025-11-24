@@ -38,9 +38,12 @@ export default function JobBoard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const jobId = params.get("job");
+    if (!jobId) return;
 
-    if (jobId && jobs.length > 0) {
-      const match = jobs.find((j) => j.id === jobId);
+    if (jobs.length > 0) {
+      const numericId = Number(jobId);
+      const match = jobs.find((j) => j.id === numericId);
+
       if (match) {
         setSelectedJob(match);
         setModalOpen(true);
@@ -52,7 +55,9 @@ export default function JobBoard() {
     <div className="min-h-screen bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-6 pb-20">
       {/* Hero */}
       <div className="max-w-5xl mx-auto pt-16 text-center">
-        <h1 className="text-4xl font-bold mb-4">Find Your Next AI Expert Opportunity</h1>
+        <h1 className="text-4xl font-bold mb-4">
+          Find Your Next AI Expert Opportunity
+        </h1>
         <p className="text-gray-400 mb-10 max-w-2xl mx-auto">
           As part of the AI-Architechs network, you get direct access to remote roles with US companies who are ready to integrate AI.
         </p>
@@ -104,11 +109,12 @@ export default function JobBoard() {
         )}
       </div>
 
-      {/* NEW: Application Modal */}
+      {/* NEW — Attach modal */}
       {modalOpen && (
         <ApplicationModal
-          job={selectedJob}
+          isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
+          job={selectedJob}
         />
       )}
     </div>
