@@ -11,9 +11,12 @@ export default function AdminCandidates() {
   const [loading, setLoading] = useState(true);
 
   // NEW FILTERS
-  const [statusFilter, setStatusFilter] = useState("all"); // ❗ single-select
+  const [statusFilter, setStatusFilter] = useState("all");
   const [filterNoProfile, setFilterNoProfile] = useState(false);
   const [filterNoHeadshot, setFilterNoHeadshot] = useState(false);
+
+  // NEW: STATUS COUNTS
+  const [statusCounts, setStatusCounts] = useState({});
 
   // Applications modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,9 +33,9 @@ export default function AdminCandidates() {
     fetchData();
   }, []);
 
-  // ==========================
-  // FETCH CANDIDATES + APPS
-  // ==========================
+  // ======================================================
+  // FETCH ARCHITECHS + APPLICATIONS
+  // ======================================================
   const fetchData = async () => {
     setLoading(true);
 
@@ -101,9 +104,9 @@ export default function AdminCandidates() {
     setLoading(false);
   };
 
-  // ==========================
+  // ======================================================
   // AUTO-SCROLL TO ?email=
-  // ==========================
+  // ======================================================
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const targetEmail = params.get("email");
@@ -129,28 +132,44 @@ export default function AdminCandidates() {
     }, 600);
   }, [candidates]);
 
+  // ======================================================
+  // AUTO-OPEN DETAILS MODAL ?open=email
+  // ======================================================
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openEmail = params.get("open");
+    if (!openEmail || candidates.length === 0) return;
 
-  // ==========================
-// AUTO-OPEN DETAILS MODAL ?open=email
-// ==========================
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const openEmail = params.get("open");
-  if (!openEmail || candidates.length === 0) return;
+    const cand = candidates.find(
+      (c) => c.email.toLowerCase() === openEmail.toLowerCase()
+    );
 
-  // Find the candidate by email
-  const cand = candidates.find(
-    (c) => c.email.toLowerCase() === openEmail.toLowerCase()
-  );
+    if (cand) {
+      openDetailsModal(cand);
+    }
+  }, [candidates]);
 
-  if (cand) {
-    openDetailsModal(cand); // opens modal + fetches full details
-  }
-}, [candidates]);
+  // ======================================================
+  // UPDATE STATUS COUNTS ANY TIME CANDIDATES CHANGE
+  // ======================================================
+  useEffect(() => {
+    if (!candidates || candidates.length === 0) {
+      setStatusCounts({});
+      return;
+    }
 
-  // ==========================
+    const counts = candidates.reduce((acc, c) => {
+      const s = c.status || "unknown";
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+
+    setStatusCounts(counts);
+  }, [candidates]);
+
+  // ======================================================
   // STATUS PILL
-  // ==========================
+  // ======================================================
   const renderStatusPill = (status) => {
     if (!status) return "—";
 
@@ -170,9 +189,10 @@ useEffect(() => {
       </span>
     );
   };
-  // ==========================
+
+  // ======================================================
   // APPLICATIONS MODAL
-  // ==========================
+  // ======================================================
   const openModal = async (candidate) => {
     setModalCandidate(candidate);
     setModalOpen(true);
@@ -202,9 +222,9 @@ useEffect(() => {
     setModalCandidate(null);
   };
 
-  // ==========================
+  // ======================================================
   // DETAILS MODAL
-  // ==========================
+  // ======================================================
   const openDetailsModal = async (candidate) => {
     setDetailsOpen(true);
     setLoadingDetails(true);
@@ -245,31 +265,27 @@ useEffect(() => {
     }
   };
 
-  // ==========================
+  // ======================================================
   // FILTERING LOGIC
-  // ==========================
+  // ======================================================
   let filteredCandidates = [...candidates];
 
-  // TEXT SEARCH
   filteredCandidates = filteredCandidates.filter((cand) =>
     `${cand.name} ${cand.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  // STATUS FILTER (single-select)
   if (statusFilter !== "all") {
     filteredCandidates = filteredCandidates.filter(
       (cand) => cand.status === statusFilter
     );
   }
 
-  // WITHOUT PROFILE
   if (filterNoProfile) {
     filteredCandidates = filteredCandidates.filter(
       (cand) => !cand.ai_profile_copy
     );
   }
 
-  // WITHOUT HEADSHOT
   if (filterNoHeadshot) {
     filteredCandidates = filteredCandidates.filter(
       (cand) => !cand.headshot_url
@@ -286,9 +302,19 @@ useEffect(() => {
     });
   };
 
-  // ==========================
+const selectedStatusLabel =
+  statusFilter === "all"
+    ? "All"
+    : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1);
+
+const selectedCount =
+  statusFilter === "all"
+    ? candidates.length
+    : statusCounts[statusFilter] || 0;
+
+  // ======================================================
   // RENDER
-  // ==========================
+  // ======================================================
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
@@ -297,14 +323,10 @@ useEffect(() => {
         <h1 className="text-2xl font-semibold text-gray-800 mb-2">
           Qualified AI-Architechs
         </h1>
-        <p className="text-sm text-gray-500 mb-6">
-          View and manage all pre-vetted AI-Architechs ({candidates.length} total)
-        </p>
 
-        {/* 🔍 Search + Filter Controls */}
+
+        {/* 🔍 Search + Filters */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-
-          {/* SEARCH */}
           <input
             type="text"
             placeholder="Search by name or email..."
@@ -312,22 +334,34 @@ useEffect(() => {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full md:w-1/2 border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+          
 
-          {/* FILTERS */}
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* STATUS DROPDOWN */}
+            {/* UPDATED STATUS DROPDOWN WITH COUNTS */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 bg-white shadow-sm focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="submitted">Submitted</option>
-              <option value="placed">Placed</option>
-              <option value="inactive">Inactive</option>
-              <option value="disqualified">Disqualified</option>
+              <option value="all">
+                All Statuses ({candidates.length})
+              </option>
+              <option value="active">
+                Active ({statusCounts.active || 0})
+              </option>
+              <option value="submitted">
+                Submitted ({statusCounts.submitted || 0})
+              </option>
+              <option value="placed">
+                Placed ({statusCounts.placed || 0})
+              </option>
+              <option value="inactive">
+                Inactive ({statusCounts.inactive || 0})
+              </option>
+              <option value="disqualified">
+                Disqualified ({statusCounts.disqualified || 0})
+              </option>
             </select>
 
             {/* WITHOUT PROFILE */}
@@ -357,6 +391,20 @@ useEffect(() => {
           </div>
         </div>
 
+<div className="mb-6">
+  <div
+    className="inline-flex items-center justify-center bg-white border border-gray-200 shadow-sm px-4 rounded-lg"
+    style={{ height: "32px" }}
+  >
+    <p className="text-sm font-medium text-gray-700 leading-tight m-0">
+      {selectedStatusLabel} AI-Architechs ={" "}
+      <span className="font-semibold text-blue-600">{selectedCount}</span>
+    </p>
+  </div>
+</div>
+
+
+
         {/* TABLE */}
         {loading ? (
           <p>Loading candidates...</p>
@@ -365,21 +413,11 @@ useEffect(() => {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Architech
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Applications
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-600">
-                    Profile Generated
-                  </th>
-                  <th className="px-6 py-3 text-center font-medium text-gray-600">
-                    Action
-                  </th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">Architech</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">Status</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">Applications</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-600">Profile Generated</th>
+                  <th className="px-6 py-3 text-center font-medium text-gray-600">Action</th>
                 </tr>
               </thead>
 
@@ -390,7 +428,7 @@ useEffect(() => {
                     data-email={cand.email.toLowerCase()}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    {/* Avatar */}
+                    {/* AVATAR */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {cand.headshot_url ? (
@@ -408,7 +446,6 @@ useEffect(() => {
                           </div>
                         )}
 
-                        {/* Name + Email */}
                         <div className="flex flex-col">
                           <span className="font-semibold text-gray-800">
                             {cand.name || "—"}
@@ -450,9 +487,7 @@ useEffect(() => {
                             <span>Resume</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span>
-                              {cand.interview_transcript ? "✔️" : "❌"}
-                            </span>
+                            <span>{cand.interview_transcript ? "✔️" : "❌"}</span>
                             <span>Interview Transcript</span>
                           </div>
                           <div className="flex items-center gap-1">
