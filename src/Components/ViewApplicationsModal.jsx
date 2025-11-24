@@ -24,6 +24,10 @@ export default function ViewApplicationsModal({ job, onClose }) {
   // NEW: client info
   const [clientInfo, setClientInfo] = useState(null);
 
+  // === HIRE FEATURE ===
+  const [hiredSelection, setHiredSelection] = useState("");
+  const [isHiring, setIsHiring] = useState(false);
+
   // 🔗 MAKE WEBHOOK URL
   const MAKE_WEBHOOK_URL =
     "https://hook.us2.make.com/2zt14fudnri74kc2cj8ytqnhasme7whd";
@@ -32,7 +36,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
     if (job?.id) fetchApplications();
   }, [job]);
 
-  // Fetch client info
   useEffect(() => {
     if (job?.client_id) fetchClientInfo();
   }, [job]);
@@ -53,9 +56,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
     }
   };
 
-  // ===========================================================
-  // FETCH APPLICATIONS
-  // ===========================================================
   const fetchApplications = async () => {
     try {
       setLoading(true);
@@ -83,7 +83,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
     }
   };
 
-  // Generate Profile
   const handleGenerateProfile = (app) => {
     setSelectedApp(app);
     setConfirmModal(true);
@@ -122,9 +121,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
 
   if (!job) return null;
 
-  // ===========================================================
-  // PILL RENDERERS
-  // ===========================================================
   const renderArchitechStatusPill = (status) => {
     const base = "px-2 py-0.5 rounded-full text-xs font-medium capitalize";
 
@@ -167,9 +163,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
     );
   };
 
-  // ===========================================================
-  // BUTTON STYLES
-  // ===========================================================
   const BTN_BASE =
     "h-9 px-4 inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap";
 
@@ -178,18 +171,12 @@ export default function ViewApplicationsModal({ job, onClose }) {
   const BTN_OUTLINE_GRAY = `${BTN_BASE} text-gray-700 border border-gray-300 hover:border-gray-400 bg-white`;
   const BTN_DISABLED = `${BTN_BASE} text-gray-500 border border-gray-200 bg-gray-100 cursor-not-allowed`;
 
-  // ===========================================================
-  // SELECTED CANDIDATES
-  // ===========================================================
   const selectedForClient = applications.filter(
     (app) =>
       app.qualified_architechs?.status === "submitted" &&
       app.application_stage === "submitted_to_client"
   );
 
-  // ===========================================================
-  // COPY BUTTON
-  // ===========================================================
   const handleCopySelected = () => {
     if (selectedForClient.length === 0) return;
 
@@ -212,9 +199,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
     toast.success("Copied selected candidates!");
   };
 
-  // ===========================================================
-  // SEND INTERVIEW INVITES (UPDATED)
-  // ===========================================================
   const handleSendInterviewInvites = async () => {
     if (selectedForClient.length === 0) {
       toast.error("No selected candidates to send invites.");
@@ -231,11 +215,8 @@ export default function ViewApplicationsModal({ job, onClose }) {
       job_title: job.title,
       interview_date: job.interview_date,
       interview_time: job.interview_time,
-
-      // NEW — client info
       client_name: clientInfo?.client_name || "",
       client_email: clientInfo?.client_email || "",
-
       candidates: selectedForClient.map((app) => ({
         name: `${app.first_name} ${app.last_name}`,
         email: app.email,
@@ -258,9 +239,65 @@ export default function ViewApplicationsModal({ job, onClose }) {
     }
   };
 
-  // ===========================================================
-  // EDIT / DESELECT LOGIC
-  // ===========================================================
+  // === HIRE FEATURE: CONFIRM HIRE ===
+  const handleConfirmHire = async () => {
+    if (!hiredSelection) {
+      toast.error("Select a hired candidate first");
+      return;
+    }
+
+    try {
+      setIsHiring(true);
+
+      const selectedApp = selectedForClient.find(
+        (app) => app.id === hiredSelection
+      );
+
+      if (!selectedApp) return;
+
+      const otherApps = selectedForClient.filter(
+        (app) => app.id !== hiredSelection
+      );
+
+      // 1) Update hired candidate
+      await supabase
+        .from("qualified_architechs")
+        .update({ status: "placed" })
+        .eq("id", selectedApp.architech_id);
+
+      await supabase
+        .from("applications")
+        .update({ application_stage: "hired" })
+        .eq("id", selectedApp.id);
+
+      // 2) Update remaining submitted → active / not_selected
+      if (otherApps.length > 0) {
+        const otherArchitechIds = otherApps.map((a) => a.architech_id);
+        const otherApplicationIds = otherApps.map((a) => a.id);
+
+        await supabase
+          .from("qualified_architechs")
+          .update({ status: "active" })
+          .in("id", otherArchitechIds);
+
+        await supabase
+          .from("applications")
+          .update({ application_stage: "not_selected" })
+          .in("id", otherApplicationIds);
+      }
+
+      toast.success("Hire confirmed!");
+
+      setHiredSelection("");
+      fetchApplications();
+    } catch (err) {
+      console.error("Confirm Hire Error:", err);
+      toast.error("Could not confirm hire");
+    } finally {
+      setIsHiring(false);
+    }
+  };
+
   const toggleDeselection = (id) => {
     setDeselectionIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -306,9 +343,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
     }
   };
 
-  // ===========================================================
-  // RENDER
-  // ===========================================================
   return (
     <>
       <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
@@ -355,6 +389,40 @@ export default function ViewApplicationsModal({ job, onClose }) {
                 </h3>
 
                 <div className="flex items-center gap-2">
+
+                  {/* === HIRE DROPDOWN === */}
+<select
+  className="h-9 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 
+             focus:ring-2 focus:ring-blue-400 focus:border-blue-400 
+             shadow-sm hover:border-gray-400 transition"
+  value={hiredSelection}
+  onChange={(e) => setHiredSelection(e.target.value)}
+>
+
+                    <option value="">Select hired candidate...</option>
+                    {selectedForClient.map((app) => (
+                      <option key={app.id} value={app.id}>
+                        {app.first_name} {app.last_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* === CONFIRM HIRE BUTTON === */}
+<button
+  onClick={handleConfirmHire}
+  disabled={!hiredSelection || isHiring}
+  className={`
+    h-9 px-4 rounded-lg text-sm font-medium flex items-center justify-center
+    transition-all
+    ${hiredSelection
+      ? "bg-green-600 text-white hover:bg-green-700 active:scale-[.98]"
+      : "bg-gray-200 text-gray-500 cursor-not-allowed"
+    }`}
+>
+  {isHiring ? "Saving..." : "Confirm Hire"}
+</button>
+
+
                   <button
                     onClick={handleCopySelected}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
@@ -419,7 +487,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
                   {selectedForClient.map((app) => (
                     <tr key={app.id} className="bg-blue-50/80">
 
-                      {/* ARCHITECH INFO */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {editingSelection && (
@@ -454,19 +521,16 @@ export default function ViewApplicationsModal({ job, onClose }) {
                         </div>
                       </td>
 
-                      {/* STATUS */}
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white whitespace-nowrap">
                           Submitted for this client
                         </span>
                       </td>
 
-                      {/* APPLICATION STAGE */}
                       <td className="px-6 py-4">
                         {renderApplicationStagePill(app.application_stage)}
                       </td>
 
-                      {/* ACTIONS */}
                       <td className="px-6 py-4 text-center flex justify-center gap-2">
                         <a
                           href={`/admin/candidates?open=${app.email}`}
@@ -522,7 +586,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
               <tbody className="divide-y divide-gray-200">
                 {applications.map((app) => (
                   <tr key={app.id} className="bg-white">
-                    {/* ARCHITECH INFO */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {app.qualified_architechs?.headshot_url ? (
@@ -576,9 +639,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
                       </div>
                     </td>
 
-                    {/* STATUS COLUMN */}
                     <td className="px-6 py-4">
-                      {/* Submitted for another client */}
                       {app.qualified_architechs?.status === "submitted" &&
                       app.application_stage === "applied" ? (
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
@@ -594,12 +655,10 @@ export default function ViewApplicationsModal({ job, onClose }) {
                       )}
                     </td>
 
-                    {/* APPLICATION STAGE */}
                     <td className="px-6 py-4">
                       {renderApplicationStagePill(app.application_stage)}
                     </td>
 
-                    {/* ACTIONS */}
                     <td className="px-6 py-4 text-center flex justify-center gap-2">
                       <a
                         href={`/admin/candidates?open=${app.email}`}
@@ -638,14 +697,10 @@ export default function ViewApplicationsModal({ job, onClose }) {
             </table>
           )}
 
-          {/* EMPTY STATE */}
           {!loading && applications.length === 0 && (
-            <p className="text-gray-500 text-sm">
-              No applications found.
-            </p>
+            <p className="text-gray-500 text-sm">No applications found.</p>
           )}
 
-          {/* FOOTER */}
           <div className="mt-6 flex justify-end">
             <button
               onClick={onClose}
@@ -657,7 +712,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
         </div>
       </div>
 
-      {/* CONFIRM MODAL - GENERATE PROFILE */}
       {confirmModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-center">
@@ -667,8 +721,7 @@ export default function ViewApplicationsModal({ job, onClose }) {
             <p className="text-sm text-gray-600 mb-6">
               This will mark{" "}
               <strong>
-                {selectedApp?.first_name}{" "}
-                {selectedApp?.last_name}
+                {selectedApp?.first_name} {selectedApp?.last_name}
               </strong>{" "}
               as{" "}
               <span className="text-blue-600 font-medium">
@@ -694,7 +747,6 @@ export default function ViewApplicationsModal({ job, onClose }) {
         </div>
       )}
 
-      {/* CONFIRM MODAL - DESELECT */}
       {showDeselectConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-center">
@@ -705,8 +757,8 @@ export default function ViewApplicationsModal({ job, onClose }) {
               This will remove{" "}
               <span className="font-semibold">{deselectionIds.length}</span>{" "}
               candidate
-              {deselectionIds.length !== 1 && "s"} from the selected
-              list for this client and move them back to{" "}
+              {deselectionIds.length !== 1 && "s"} from the selected list
+              for this client and move them back to{" "}
               <span className="font-medium text-gray-800">
                 applied
               </span>{" "}
