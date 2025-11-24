@@ -13,6 +13,9 @@ export default function AdminClients() {
   const [selectedDraft, setSelectedDraft] = useState(null);
   const [filter, setFilter] = useState("all");
 
+  // NEW: search bar
+  const [searchTerm, setSearchTerm] = useState("");
+
   // ===== Utility =====
   const hasAllFields = (c) =>
     c.implementation_transcript &&
@@ -145,15 +148,25 @@ export default function AdminClients() {
       </div>
     );
 
-  // ===== Filter Logic =====
-  const filteredClients = clients.filter((c) => {
-    const isReady = hasAllFields(c);
-    const isPublished = c.job_draft_status?.trim().toLowerCase() === "published";
-    if (filter === "ready") return isReady && !isPublished;
-    if (filter === "not-ready") return !isReady;
-    if (filter === "posted") return isPublished;
-    return true;
-  });
+  // ===== Filter + Search Logic =====
+  const filteredClients = clients
+    .filter((c) => {
+      const isReady = hasAllFields(c);
+      const isPublished =
+        c.job_draft_status?.trim().toLowerCase() === "published";
+
+      if (filter === "ready") return isReady && !isPublished;
+      if (filter === "not-ready") return !isReady;
+      if (filter === "posted") return isPublished;
+      return true;
+    })
+    .filter((c) => {
+      if (!searchTerm) return true;
+      return (
+        c.client_name.toLowerCase().includes(searchTerm) ||
+        c.client_email.toLowerCase().includes(searchTerm)
+      );
+    });
 
   // ===== UI =====
   return (
@@ -161,43 +174,65 @@ export default function AdminClients() {
       <AdminNavbar />
 
       <div className="max-w-7xl mx-auto px-6 pt-24 pb-12">
+        {/* Title + Search + Filter */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-semibold mb-1 text-gray-900">
               Client Directory
             </h1>
             <p className="text-gray-500">
-              View and manage all clients with their implementation and recruiter call data.
+              View and manage all clients with their implementation and recruiter
+              call data.
             </p>
           </div>
 
-          {/* Filter */}
-          <select
-            className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="ready">Ready to Post</option>
-            <option value="not-ready">Not Yet Ready</option>
-            <option value="posted">Job Posted</option>
-          </select>
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-60"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+            />
+
+            {/* Filter */}
+            <select
+              className="border border-gray-300 bg-white text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="ready">Ready to Post</option>
+              <option value="not-ready">Not Yet Ready</option>
+              <option value="posted">Job Posted</option>
+            </select>
+          </div>
         </div>
 
+        {/* Table */}
         <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
           <table className="w-full text-sm text-gray-700 border-collapse">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left font-medium w-[10%]">Client</th>
+                <th className="px-6 py-3 text-left font-medium w-[10%]">
+                  Client
+                </th>
                 <th className="px-6 py-3 text-left font-medium w-[20%]">
                   Implementation Transcript
                 </th>
-                <th className="px-6 py-3 text-left font-medium w-[10%]">Blueprint</th>
+                <th className="px-6 py-3 text-left font-medium w-[10%]">
+                  Blueprint
+                </th>
                 <th className="px-6 py-3 text-left font-medium w-[20%]">
                   Recruiter Transcript
                 </th>
-                <th className="px-6 py-3 text-left font-medium w-[25%]">Assets</th>
-                <th className="px-6 py-3 text-center font-medium w-[25%]">Action</th>
+                <th className="px-6 py-3 text-left font-medium w-[25%]">
+                  Assets
+                </th>
+                <th className="px-6 py-3 text-center font-medium w-[25%]">
+                  Action
+                </th>
               </tr>
             </thead>
 
@@ -205,6 +240,7 @@ export default function AdminClients() {
               {filteredClients.map((c) => {
                 const isEditing = editing === c.id;
                 const isGenerating = generatingId === c.id;
+
                 const check = (condition) =>
                   condition ? (
                     <span className="text-green-600 font-semibold">✔</span>
@@ -221,8 +257,12 @@ export default function AdminClients() {
                   >
                     {/* Client */}
                     <td className="px-6 py-4 align-top break-words">
-                      <div className="font-semibold text-gray-900">{c.client_name}</div>
-                      <div className="text-gray-500 text-xs">{c.client_email}</div>
+                      <div className="font-semibold text-gray-900">
+                        {c.client_name}
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {c.client_email}
+                      </div>
                     </td>
 
                     {/* Implementation Transcript */}
@@ -249,7 +289,8 @@ export default function AdminClients() {
                           title={c.implementation_transcript || ""}
                         >
                           {c.implementation_transcript
-                            ? c.implementation_transcript.substring(0, 80) + "..."
+                            ? c.implementation_transcript.substring(0, 80) +
+                              "..."
                             : "—"}
                         </p>
                       )}
@@ -316,14 +357,20 @@ export default function AdminClients() {
                       )}
                     </td>
 
-                    {/* ✅ Assets Column */}
+                    {/* Assets */}
                     <td className="px-6 py-4 align-top">
                       <div className="flex flex-col text-xs space-y-1">
                         <div>
-                          {check(c.implementation_transcript)} Implementation Transcript
+                          {check(c.implementation_transcript)} Implementation
+                          Transcript
                         </div>
-                        <div>{check(c.recruiter_transcript)} Recruiter Transcript</div>
-                        <div>{check(c.implementation_blueprint)} Implementation Blueprint</div>
+                        <div>
+                          {check(c.recruiter_transcript)} Recruiter Transcript
+                        </div>
+                        <div>
+                          {check(c.implementation_blueprint)} Implementation
+                          Blueprint
+                        </div>
                       </div>
                     </td>
 
@@ -347,7 +394,8 @@ export default function AdminClients() {
                       ) : hasAllFields(c) ? (
                         <div className="flex flex-col gap-2 items-center">
                           {(() => {
-                            const status = c.job_draft_status?.trim().toLowerCase();
+                            const status =
+                              c.job_draft_status?.trim().toLowerCase();
 
                             if (status === "published") {
                               return (
@@ -427,7 +475,6 @@ export default function AdminClients() {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-center">
-        
                           <button
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-medium"
                             onClick={() => setEditing(c.id)}
