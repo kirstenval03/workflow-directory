@@ -4,11 +4,15 @@ import JobCard from '../Components/JobCard';
 import { Briefcase, ShieldCheck, Globe } from 'lucide-react';
 import ApplicationModal from '../Components/ApplicationModal';
 
-
 export default function JobBoard() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // NEW: Modal state
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // FETCH JOBS
   useEffect(() => {
     const fetchJobs = async () => {
       const { data, error } = await supabase
@@ -29,6 +33,20 @@ export default function JobBoard() {
 
     fetchJobs();
   }, []);
+
+  // NEW: Auto-open modal if URL includes ?job=ID
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const jobId = params.get("job");
+
+    if (jobId && jobs.length > 0) {
+      const match = jobs.find((j) => j.id === jobId);
+      if (match) {
+        setSelectedJob(match);
+        setModalOpen(true);
+      }
+    }
+  }, [jobs]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-6 pb-20">
@@ -73,11 +91,26 @@ export default function JobBoard() {
         ) : (
           <div className="flex flex-col gap-6">
             {jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+              <JobCard
+                key={job.id}
+                job={job}
+                onOpen={() => {
+                  setSelectedJob(job);
+                  setModalOpen(true);
+                }}
+              />
             ))}
-            </div>
+          </div>
         )}
       </div>
+
+      {/* NEW: Application Modal */}
+      {modalOpen && (
+        <ApplicationModal
+          job={selectedJob}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
