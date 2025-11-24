@@ -35,21 +35,20 @@ export default function JobBoard() {
   }, []);
 
   // NEW: Auto-open modal if URL includes ?job=ID
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const jobId = params.get("job");
-    if (!jobId) return;
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const jobId = params.get("job");
+  if (!jobId) return;
 
-    if (jobs.length > 0) {
-      const numericId = Number(jobId);
-      const match = jobs.find((j) => j.id === numericId);
-
-      if (match) {
-        setSelectedJob(match);
-        setModalOpen(true);
-      }
+  if (jobs.length > 0) {
+    const match = jobs.find((j) => String(j.id) === String(jobId));
+    if (match) {
+      setSelectedJob(match);
+      setModalOpen(true);
     }
-  }, [jobs]);
+  }
+}, [jobs]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-6 pb-20">
