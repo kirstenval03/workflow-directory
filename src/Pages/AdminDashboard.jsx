@@ -27,35 +27,41 @@ export default function AdminDashboard() {
 
   // ────────────────────────────────────────────────
   // FETCH JOBS + APPLICATION COUNTS
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
+const fetchJobs = async () => {
+  try {
+    setLoading(true);
 
-      const { data: jobsData, error: jobsError } = await supabase
-        .from("jobs")
-        .select("*")
-        .order("posted_at", { ascending: false });
+    const { data: jobsData, error: jobsError } = await supabase
+      .from("jobs")
+      .select(`
+        *,
+        client:client_id (
+          client_name,
+          client_email
+        )
+      `)
+      .order("posted_at", { ascending: false });
 
-      if (jobsError) throw jobsError;
+    if (jobsError) throw jobsError;
 
-      const { data: appsData, error: appsError } = await supabase
-        .from("applications")
-        .select("id, job_id");
+    const { data: appsData, error: appsError } = await supabase
+      .from("applications")
+      .select("id, job_id");
 
-      if (appsError) throw appsError;
+    if (appsError) throw appsError;
 
-      const jobsWithCounts = jobsData.map((job) => {
-        const appCount = appsData.filter((app) => app.job_id === job.id).length;
-        return { ...job, applications: appCount };
-      });
+    const jobsWithCounts = jobsData.map((job) => {
+      const appCount = appsData.filter((app) => app.job_id === job.id).length;
+      return { ...job, applications: appCount };
+    });
 
-      setJobs(jobsWithCounts);
-    } catch (err) {
-      console.error("Error fetching jobs:", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setJobs(jobsWithCounts);
+  } catch (err) {
+    console.error("Error fetching jobs:", err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ────────────────────────────────────────────────
   const fetchApplicationsCount = async () => {
